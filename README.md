@@ -13,8 +13,8 @@ Prototype front-only pour tester une logique de creation, verification et export
 - checks de base orientes institutionnels
 - preview immediate
 - export SVG
-- export PNG
-- sauvegarde locale dans le navigateur
+- export PNG calibre pour une page Word A4 standard
+- sauvegarde locale de projets avec historique de versions dans le navigateur
 - palette visuelle alignee sur des couleurs relevees sur efk.admin.ch
 
 ## Ce que ce prototype ne fait pas encore
@@ -43,6 +43,18 @@ Puis ouvrir [http://localhost:4173](http://localhost:4173).
 - `index.html`: interface
 - `styles.css`: design et layout
 - `app.js`: logique de formulaire, checks, rendu SVG, export
+
+## Sauvegarde locale
+
+- Le bouton `Sauver une version` cree une nouvelle version du projet dans `localStorage`.
+- La zone `Projet` affiche les projets sauves dans ce navigateur et permet de recharger la derniere version ou une version precise.
+- Le brouillon en cours est aussi retenu automatiquement dans la session locale du navigateur.
+
+## Export Word
+
+- Le bouton `Exporter en PNG Word` genere un PNG calibre pour la largeur utile d'une page Word A4 standard.
+- L'objectif est de pouvoir coller l'image dans Word sans redimensionnement manuel.
+- L'export SVG utilise aussi une largeur physique calibree pour ce meme usage.
 
 ## Idee d'evolution
 

@@ -9,10 +9,15 @@ const REPORT_COLORS = {
   link: "#5d77a8",
 };
 
-const STORAGE_KEY = "graphics-lab-draft-v2";
+const STORAGE_KEY = "graphics-lab-session-v3";
+const PROJECTS_STORAGE_KEY = "graphics-lab-projects-v1";
 const DEFAULT_CHART_TYPE = "annual-stacked";
 const MIN_ROWS = 5;
 const MAX_SERIES = 4;
+const MAX_PROJECT_VERSIONS = 24;
+const WORD_EXPORT_WIDTH_CM = 15.9;
+const WORD_EXPORT_DPI = 96;
+const CRC32_TABLE = createCrc32Table();
 
 const CHART_CONFIGS = {
   "annual-stacked": {
@@ -242,8 +247,12 @@ const totalValue = document.querySelector("#value-total");
 const templateNote = document.querySelector("#template-note");
 const seriesEditor = document.querySelector("#series-editor");
 const addSeriesButton = document.querySelector("#add-series");
+const projectStatus = document.querySelector("#project-status");
+const projectVersionMeta = document.querySelector("#project-version-meta");
+const projectHistory = document.querySelector("#project-history");
 
 const fields = {
+  projectName: document.querySelector("#project-name"),
   title: document.querySelector("#title"),
   subtitle: document.querySelector("#subtitle"),
   chartType: document.querySelector("#chart-type"),
@@ -258,26 +267,47 @@ const fields = {
 let currentChartType = DEFAULT_CHART_TYPE;
 let seriesConfig = [];
 let dataRows = [];
+let currentProjectId = null;
+let currentVersionId = null;
 
 function getChartConfig(chartType) {
   return CHART_CONFIGS[chartType] || CHART_CONFIGS[DEFAULT_CHART_TYPE];
 }
 
 document.querySelector("#load-sample").addEventListener("click", () => {
-  applyState(getSampleState(currentChartType));
+  applySession({
+    projectId: null,
+    projectName: "",
+    currentVersionId: null,
+    state: getSampleState(currentChartType),
+  });
+  render({ syncAll: true });
+});
+
+document.querySelector("#new-project").addEventListener("click", () => {
+  localStorage.removeItem(STORAGE_KEY);
+  applySession({
+    projectId: null,
+    projectName: "",
+    currentVersionId: null,
+    state: createBlankState(currentChartType),
+  });
   render({ syncAll: true });
 });
 
 document.querySelector("#reset-form").addEventListener("click", () => {
-  localStorage.removeItem(STORAGE_KEY);
-  applyState(createBlankState(currentChartType));
+  applySession({
+    projectId: null,
+    projectName: "",
+    currentVersionId: null,
+    state: createBlankState(currentChartType),
+  });
   render({ syncAll: true });
 });
 
-document.querySelector("#save-draft").addEventListener("click", () => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(getState()));
-  qualityChip.textContent = "Brouillon sauve";
-  setTimeout(() => render(), 500);
+document.querySelector("#save-project").addEventListener("click", () => {
+  saveProjectVersion();
+  render();
 });
 
 document.querySelector("#copy-config").addEventListener("click", async () => {
@@ -303,8 +333,29 @@ document.querySelector("#export-png").addEventListener("click", async () => {
   }
 });
 
+projectHistory.addEventListener("click", (event) => {
+  const projectButton = event.target.closest("[data-load-project]");
+  const versionButton = event.target.closest("[data-load-version]");
+
+  if (projectButton) {
+    loadProject(projectButton.dataset.loadProject);
+    return;
+  }
+
+  if (versionButton) {
+    const [projectId, versionId] = (versionButton.dataset.loadVersion || "").split(":");
+    if (projectId && versionId) {
+      loadProjectVersion(projectId, versionId);
+    }
+  }
+});
+
 fields.chartType.addEventListener("change", () => {
   handleChartTypeChange(fields.chartType.value);
+});
+
+fields.projectName.addEventListener("input", () => {
+  render();
 });
 
 addSeriesButton.addEventListener("click", () => {
@@ -459,15 +510,42 @@ form.addEventListener("change", (event) => {
 boot();
 
 function boot() {
-  const saved = loadSavedState();
-  applyState(saved || getSampleState(DEFAULT_CHART_TYPE));
+  const savedSession = loadSavedSession();
+  applySession(
+    savedSession || {
+      projectId: null,
+      projectName: "",
+      currentVersionId: null,
+      state: getSampleState(DEFAULT_CHART_TYPE),
+    },
+  );
   render({ syncAll: true });
 }
 
-function loadSavedState() {
+function loadSavedSession() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if (parsed && parsed.state) {
+      return {
+        projectId: parsed.projectId ?? null,
+        projectName: parsed.projectName ?? "",
+        currentVersionId: parsed.currentVersionId ?? null,
+        state: parsed.state,
+      };
+    }
+
+    return {
+      projectId: null,
+      projectName: "",
+      currentVersionId: null,
+      state: parsed,
+    };
   } catch (error) {
     return null;
   }
@@ -496,13 +574,16 @@ function createBlankState(chartType) {
   };
 }
 
-function applyState(state) {
-  const normalized = normalizeState(state);
+function applySession(session) {
+  const normalized = normalizeState(session.state);
 
   currentChartType = normalized.chartType;
   seriesConfig = normalized.series;
   dataRows = normalized.rows;
+  currentProjectId = session.projectId ?? null;
+  currentVersionId = session.currentVersionId ?? null;
 
+  fields.projectName.value = session.projectName ?? "";
   fields.title.value = normalized.title;
   fields.subtitle.value = normalized.subtitle;
   fields.chartType.value = normalized.chartType;
@@ -601,6 +682,19 @@ function getState() {
   };
 }
 
+function getSessionSnapshot() {
+  return {
+    projectId: currentProjectId,
+    projectName: fields.projectName.value.trim(),
+    currentVersionId,
+    state: getState(),
+  };
+}
+
+function persistSession() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(getSessionSnapshot()));
+}
+
 function handleChartTypeChange(nextType) {
   if (!CHART_CONFIGS[nextType] || nextType === currentChartType) {
     return;
@@ -677,8 +771,14 @@ function migrateRows(nextType, rows, previousSeries, nextSeries) {
 function buildPayload() {
   const state = getState();
   const parsed = parseTableRows(dataRows, seriesConfig);
+  const exportProfile = getWordExportProfile();
 
   return {
+    project: {
+      name: fields.projectName.value.trim(),
+      projectId: currentProjectId,
+      currentVersionId,
+    },
     metadata: {
       title: state.title,
       subtitle: state.subtitle,
@@ -691,7 +791,8 @@ function buildPayload() {
     presentation: {
       template: state.chartType,
       label: getChartConfig(state.chartType).label,
-      exportTargets: ["web", "svg", "png"],
+      exportTargets: ["web", "svg", "png-word"],
+      exportProfile,
       series: cloneData(seriesConfig),
     },
     data: parsed.rows,
@@ -724,11 +825,14 @@ function render(options = {}) {
   }
 
   syncAuxiliaryUi();
+  renderProjectStatus();
+  renderProjectLibrary();
   renderStats(parsed.rows);
   renderLists(checks);
   renderQuality(checks);
   renderPreviewMeta(parsed.rows.length, state.locale, state.chartType);
   renderPayload(payload);
+  persistSession();
 
   if (checks.errors.length > 0) {
     preview.innerHTML = `
@@ -929,6 +1033,210 @@ function renderPreviewMeta(rowCount, locale, chartType) {
 
 function renderPayload(payload) {
   payloadPreview.textContent = JSON.stringify(payload, null, 2);
+}
+
+function renderProjectStatus() {
+  const draftName = fields.projectName.value.trim();
+  const project = currentProjectId ? loadProjects().find((item) => item.id === currentProjectId) : null;
+  const activeVersion = project?.versions.find((version) => version.id === currentVersionId) || project?.versions[0];
+
+  if (project && activeVersion) {
+    projectStatus.textContent = project.name;
+    projectVersionMeta.textContent = `${project.versions.length} version(s) locale(s). Version chargee: ${formatDateTime(
+      activeVersion.savedAt,
+    )}.`;
+    return;
+  }
+
+  projectStatus.textContent = draftName || "Projet non sauvegarde";
+  projectVersionMeta.textContent = draftName
+    ? "Brouillon local en cours. Sauver une version pour l'ajouter a l'historique."
+    : "Aucune version locale pour l'instant.";
+}
+
+function renderProjectLibrary() {
+  const projects = sortProjects(loadProjects());
+
+  if (projects.length === 0) {
+    projectHistory.innerHTML = `
+      <article class="history-empty">
+        <p class="section-kicker">Historique</p>
+        <p class="data-note">
+          Sauve une premiere version pour commencer une bibliotheque de projets locale.
+        </p>
+      </article>
+    `;
+    return;
+  }
+
+  projectHistory.innerHTML = projects
+    .map((project) => {
+      const latestVersion = project.versions[0];
+      const versionsMarkup = project.versions
+        .slice(0, 6)
+        .map((version, index) => {
+          const isCurrent = project.id === currentProjectId && version.id === currentVersionId;
+          const label = index === 0 ? "Derniere" : formatShortDateTime(version.savedAt);
+
+          return `
+            <button
+              type="button"
+              class="version-chip ${isCurrent ? "current" : ""}"
+              data-load-version="${project.id}:${version.id}"
+            >
+              ${escapeHtml(label)}
+            </button>
+          `;
+        })
+        .join("");
+
+      return `
+        <article class="history-card ${project.id === currentProjectId ? "current" : ""}">
+          <div class="history-card-head">
+            <div>
+              <p class="section-kicker">Projet</p>
+              <strong>${escapeHtml(project.name)}</strong>
+            </div>
+            <div class="history-count">${project.versions.length}</div>
+          </div>
+          <div class="history-meta">
+            <p class="data-note">Mis a jour le ${escapeHtml(formatDateTime(project.updatedAt))}</p>
+            <span>Versions</span>
+          </div>
+          <div class="history-actions">
+            <button type="button" class="ghost compact" data-load-project="${project.id}">Charger la derniere</button>
+          </div>
+          <div class="version-list">${versionsMarkup}</div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function saveProjectVersion() {
+  const snapshot = getState();
+  const projects = loadProjects();
+  const savedAt = new Date().toISOString();
+  const projectName = fields.projectName.value.trim() || snapshot.title || buildDefaultProjectName();
+  let project = currentProjectId ? projects.find((item) => item.id === currentProjectId) : null;
+
+  fields.projectName.value = projectName;
+
+  const version = {
+    id: buildEntityId("version"),
+    savedAt,
+    snapshot,
+  };
+
+  if (!project) {
+    project = {
+      id: buildEntityId("project"),
+      name: projectName,
+      createdAt: savedAt,
+      updatedAt: savedAt,
+      versions: [version],
+    };
+    projects.push(project);
+  } else {
+    project.name = projectName;
+    project.updatedAt = savedAt;
+    project.versions.unshift(version);
+    project.versions = project.versions.slice(0, MAX_PROJECT_VERSIONS);
+  }
+
+  if (!project.createdAt) {
+    project.createdAt = savedAt;
+  }
+
+  if (project.versions[0]?.id !== version.id) {
+    project.versions.unshift(version);
+    project.versions = project.versions.slice(0, MAX_PROJECT_VERSIONS);
+  }
+
+  currentProjectId = project.id;
+  currentVersionId = version.id;
+  saveProjects(projects);
+  persistSession();
+}
+
+function loadProject(projectId) {
+  const project = loadProjects().find((item) => item.id === projectId);
+
+  if (!project || project.versions.length === 0) {
+    return;
+  }
+
+  loadProjectVersion(project.id, project.versions[0].id);
+}
+
+function loadProjectVersion(projectId, versionId) {
+  const project = loadProjects().find((item) => item.id === projectId);
+  const version = project?.versions.find((item) => item.id === versionId);
+
+  if (!project || !version) {
+    return;
+  }
+
+  applySession({
+    projectId: project.id,
+    projectName: project.name,
+    currentVersionId: version.id,
+    state: version.snapshot,
+  });
+  render({ syncAll: true });
+}
+
+function loadProjects() {
+  try {
+    const raw = localStorage.getItem(PROJECTS_STORAGE_KEY);
+
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((project) => normalizeProject(project))
+      .filter((project) => project.versions.length > 0);
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveProjects(projects) {
+  localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(sortProjects(projects)));
+}
+
+function normalizeProject(project) {
+  const name = String(project?.name ?? "").trim() || "Projet sans titre";
+  const createdAt = project?.createdAt || new Date().toISOString();
+  const updatedAt = project?.updatedAt || createdAt;
+  const versions = Array.isArray(project?.versions)
+    ? project.versions
+        .map((version) => ({
+          id: version?.id || buildEntityId("version"),
+          savedAt: version?.savedAt || updatedAt,
+          snapshot: normalizeState(version?.snapshot || createBlankState(DEFAULT_CHART_TYPE)),
+        }))
+        .sort((left, right) => new Date(right.savedAt) - new Date(left.savedAt))
+    : [];
+
+  return {
+    id: project?.id || buildEntityId("project"),
+    name,
+    createdAt,
+    updatedAt,
+    versions,
+  };
+}
+
+function sortProjects(projects) {
+  return [...projects].sort((left, right) => new Date(right.updatedAt) - new Date(left.updatedAt));
 }
 
 function runChecks(state, parsed) {
@@ -1582,7 +1890,7 @@ function exportCurrentChartAsSvg() {
   }
 
   downloadBlob(
-    new Blob([exportData.markup], { type: "image/svg+xml;charset=utf-8" }),
+    new Blob([exportData.wordMarkup], { type: "image/svg+xml;charset=utf-8" }),
     `${buildExportSlug()}.svg`,
   );
 }
@@ -1595,11 +1903,11 @@ async function exportCurrentChartAsPng() {
     return;
   }
 
-  const image = await loadImage(buildSvgDataUrl(exportData.markup));
-  const scale = 2;
+  const wordProfile = exportData.wordProfile;
+  const image = await loadImage(buildSvgDataUrl(exportData.wordMarkup));
   const canvas = document.createElement("canvas");
-  canvas.width = Math.max(Math.round(exportData.width * scale), 1);
-  canvas.height = Math.max(Math.round(exportData.height * scale), 1);
+  canvas.width = wordProfile.pixelWidth;
+  canvas.height = wordProfile.pixelHeight;
 
   const context = canvas.getContext("2d");
 
@@ -1609,11 +1917,13 @@ async function exportCurrentChartAsPng() {
 
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.setTransform(scale, 0, 0, scale, 0, 0);
-  context.drawImage(image, 0, 0, exportData.width, exportData.height);
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
 
   const pngBlob = await canvasToBlob(canvas);
-  downloadBlob(pngBlob, `${buildExportSlug()}.png`);
+  const calibratedBlob = await applyPngDensity(pngBlob, WORD_EXPORT_DPI);
+  downloadBlob(calibratedBlob, `${buildExportSlug()}.png`);
 }
 
 function getCurrentSvgExportData() {
@@ -1630,8 +1940,29 @@ function getCurrentSvgExportData() {
 
   return {
     markup: buildNormalizedSvgMarkup(svg, width, height),
+    wordMarkup: buildNormalizedSvgMarkup(svg, width, height, {
+      widthCm: getWordExportProfile(width, height).widthCm,
+      heightCm: getWordExportProfile(width, height).heightCm,
+    }),
     width,
     height,
+    wordProfile: getWordExportProfile(width, height),
+  };
+}
+
+function getWordExportProfile(sourceWidth = 860, sourceHeight = 500) {
+  const widthCm = WORD_EXPORT_WIDTH_CM;
+  const pixelWidth = Math.max(Math.round((widthCm / 2.54) * WORD_EXPORT_DPI), 1);
+  const ratio = sourceHeight / sourceWidth || 1;
+  const pixelHeight = Math.max(Math.round(pixelWidth * ratio), 1);
+  const heightCm = Number.parseFloat((widthCm * ratio).toFixed(2));
+
+  return {
+    widthCm,
+    heightCm,
+    pixelWidth,
+    pixelHeight,
+    dpi: WORD_EXPORT_DPI,
   };
 }
 
@@ -1689,12 +2020,12 @@ function canvasToBlob(canvas) {
   });
 }
 
-function buildNormalizedSvgMarkup(svg, width, height) {
+function buildNormalizedSvgMarkup(svg, width, height, options = {}) {
   const clone = svg.cloneNode(true);
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
-  clone.setAttribute("width", String(width));
-  clone.setAttribute("height", String(height));
+  clone.setAttribute("width", options.widthCm ? `${options.widthCm}cm` : String(width));
+  clone.setAttribute("height", options.heightCm ? `${options.heightCm}cm` : String(height));
 
   if (!clone.getAttribute("viewBox")) {
     clone.setAttribute("viewBox", `0 0 ${width} ${height}`);
@@ -1719,6 +2050,132 @@ function dataUrlToBlob(dataUrl) {
   }
 
   return new Blob([bytes], { type: mimeType });
+}
+
+async function applyPngDensity(blob, dpi) {
+  try {
+    const source = new Uint8Array(await blob.arrayBuffer());
+
+    if (!isPngFile(source)) {
+      return blob;
+    }
+
+    const pixelsPerMeter = Math.max(Math.round(dpi * 39.3701), 1);
+    const data = new Uint8Array(9);
+    writeUint32(data, 0, pixelsPerMeter);
+    writeUint32(data, 4, pixelsPerMeter);
+    data[8] = 1;
+
+    const nextBytes = replaceOrInsertPngChunk(source, "pHYs", data, "IHDR");
+    return new Blob([nextBytes], { type: "image/png" });
+  } catch (error) {
+    return blob;
+  }
+}
+
+function isPngFile(bytes) {
+  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+  return signature.every((value, index) => bytes[index] === value);
+}
+
+function replaceOrInsertPngChunk(bytes, chunkType, data, insertAfterType) {
+  let offset = 8;
+  let insertOffset = 8;
+
+  while (offset < bytes.length) {
+    const length = readUint32(bytes, offset);
+    const type = readChunkType(bytes, offset + 4);
+    const chunkEnd = offset + length + 12;
+
+    if (type === insertAfterType) {
+      insertOffset = chunkEnd;
+    }
+
+    if (type === chunkType) {
+      return concatUint8Arrays([
+        bytes.slice(0, offset),
+        buildPngChunk(chunkType, data),
+        bytes.slice(chunkEnd),
+      ]);
+    }
+
+    offset = chunkEnd;
+  }
+
+  return concatUint8Arrays([
+    bytes.slice(0, insertOffset),
+    buildPngChunk(chunkType, data),
+    bytes.slice(insertOffset),
+  ]);
+}
+
+function buildPngChunk(type, data) {
+  const typeBytes = new TextEncoder().encode(type);
+  const chunk = new Uint8Array(data.length + 12);
+  writeUint32(chunk, 0, data.length);
+  chunk.set(typeBytes, 4);
+  chunk.set(data, 8);
+  writeUint32(chunk, data.length + 8, calculateCrc32(chunk.slice(4, data.length + 8)));
+  return chunk;
+}
+
+function concatUint8Arrays(parts) {
+  const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+
+  parts.forEach((part) => {
+    merged.set(part, offset);
+    offset += part.length;
+  });
+
+  return merged;
+}
+
+function readUint32(bytes, offset) {
+  return (
+    ((bytes[offset] << 24) >>> 0) +
+    (bytes[offset + 1] << 16) +
+    (bytes[offset + 2] << 8) +
+    bytes[offset + 3]
+  );
+}
+
+function writeUint32(bytes, offset, value) {
+  bytes[offset] = (value >>> 24) & 255;
+  bytes[offset + 1] = (value >>> 16) & 255;
+  bytes[offset + 2] = (value >>> 8) & 255;
+  bytes[offset + 3] = value & 255;
+}
+
+function readChunkType(bytes, offset) {
+  return String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]);
+}
+
+function calculateCrc32(bytes) {
+  let crc = 0xffffffff;
+
+  bytes.forEach((byte) => {
+    crc = CRC32_TABLE[(crc ^ byte) & 255] ^ (crc >>> 8);
+  });
+
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function createCrc32Table() {
+  return Array.from({ length: 256 }, (_, index) => {
+    let current = index;
+
+    for (let bit = 0; bit < 8; bit += 1) {
+      if ((current & 1) === 1) {
+        current = 0xedb88320 ^ (current >>> 1);
+      } else {
+        current >>>= 1;
+      }
+    }
+
+    return current >>> 0;
+  });
 }
 
 function ensureMinimumRows() {
@@ -1881,6 +2338,36 @@ function escapeAttribute(value) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function formatDateTime(value) {
+  return new Intl.DateTimeFormat("fr-CH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function formatShortDateTime(value) {
+  return new Intl.DateTimeFormat("fr-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function buildDefaultProjectName() {
+  return `Projet ${new Intl.DateTimeFormat("fr-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+    .format(new Date())
+    .replaceAll(".", "-")}`;
+}
+
+function buildEntityId(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function slugify(value) {

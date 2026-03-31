@@ -28,9 +28,39 @@
             </div>
             <div class="toolbar">
               <button id="load-sample" type="button" class="ghost">Charger un exemple</button>
-              <button id="save-draft" type="button" class="ghost">Sauver localement</button>
+              <button id="new-project" type="button" class="ghost">Nouveau projet</button>
             </div>
           </div>
+
+          <section class="project-card">
+            <div class="project-card-head">
+              <div>
+                <p class="section-kicker">Projet</p>
+                <h3>Sauvegarde locale et historique</h3>
+                <p class="data-note">
+                  Chaque sauvegarde cree une nouvelle version locale dans ce navigateur.
+                </p>
+              </div>
+              <div class="toolbar">
+                <button id="save-project" type="button">Sauver une version</button>
+              </div>
+            </div>
+
+            <div class="project-grid">
+              <label class="full">
+                Nom du projet
+                <input id="project-name" name="projectName" type="text" placeholder="Ex. Rapport annuel 2026 - lanceurs d'alerte" />
+              </label>
+
+              <article class="project-status-card">
+                <span>Etat</span>
+                <strong id="project-status">Projet non sauvegarde</strong>
+                <p id="project-version-meta" class="data-note">Aucune version locale pour l'instant.</p>
+              </article>
+            </div>
+
+            <div id="project-history" class="project-history"></div>
+          </section>
 
           <form id="editor-form" class="editor-grid">
             <label>
@@ -183,11 +213,14 @@
               <p id="preview-meta" class="preview-meta"></p>
             </div>
             <div id="chart-preview" class="chart-preview"></div>
+            <p class="export-note">
+              L'export PNG est calibre pour la largeur utile d'une page Word A4 standard, afin d'eviter un redimensionnement manuel au collage.
+            </p>
           </article>
 
           <div class="footer-actions">
             <button id="export-svg" type="button">Exporter en SVG</button>
-            <button id="export-png" type="button">Exporter en PNG</button>
+            <button id="export-png" type="button">Exporter en PNG Word</button>
           </div>
         </section>
 
