@@ -136,69 +136,69 @@ function buildUiText(language) {
   }
 
   return {
-    jsonCopied: "JSON copie",
-    clipboardDenied: "Le navigateur a refuse l'acces au presse-papiers.",
+    jsonCopied: "JSON copié",
+    clipboardDenied: "Le navigateur a refusé l'accès au presse-papiers.",
     pngExportFailed: "Impossible d'exporter le PNG pour le moment.",
-    noCsvData: "Aucune donnee exploitable n'a ete trouvee dans le CSV.",
+    noCsvData: "Aucune donnée exploitable n'a été trouvée dans le CSV.",
     importInvalidRows: ({ count }) =>
-      `${count} ligne(s) n'ont pas pu etre importees parce qu'elles etaient incompletes ou invalides.`,
-    unsavedProject: "Projet non sauvegarde",
+      `${count} ligne(s) n'ont pas pu être importée(s) parce qu'elles étaient incomplètes ou invalides.`,
+    unsavedProject: "Projet non sauvegardé",
     noLocalVersions: "Aucune version locale pour l'instant.",
     projectDraft:
-      "Brouillon local en cours. Sauver une version pour l'ajouter a l'historique.",
-    projectLoaded: ({ count, date }) => `${count} version(s) locale(s). Version chargee: ${date}.`,
-    historyEmpty: "Sauve une premiere version pour commencer une bibliotheque de projets locale.",
+      "Brouillon local en cours. Sauver une version pour l'ajouter à l'historique.",
+    projectLoaded: ({ count, date }) => `${count} version(s) locale(s). Version chargée : ${date}.`,
+    historyEmpty: "Sauve une première version pour commencer une bibliothèque de projets locale.",
     historyKicker: "Historique",
-    historyLast: "Derniere",
+    historyLast: "Dernière",
     historyProjectKicker: "Projet",
     historyVersions: "Versions",
-    historyUpdatedAt: ({ date }) => `Mis a jour le ${date}`,
-    historyLoadLatest: "Charger la derniere",
+    historyUpdatedAt: ({ date }) => `Mis à jour le ${date}`,
+    historyLoadLatest: "Charger la dernière",
     deleteVersionAria: ({ date }) => `Supprimer la version du ${date}`,
     deleteVersionConfirm: ({ date }) => `Supprimer la version du ${date} ?`,
     untitledProject: "Projet sans titre",
     titleRequired: "Le titre est obligatoire.",
     sourceRequired: "La source est obligatoire.",
-    minRows: "Il faut au moins deux lignes de donnees.",
-    invalidRows: ({ count }) => `${count} ligne(s) de donnees contiennent une valeur invalide.`,
-    minSeriesStacked: "Le template empile exige au moins deux series.",
+    minRows: "Il faut au moins deux lignes de données.",
+    invalidRows: ({ count }) => `${count} ligne(s) de données contiennent une valeur invalide.`,
+    minSeriesStacked: "Le template empilé exige au moins deux séries.",
     altTextEmpty: "Le texte alternatif est vide.",
-    methodologyEmpty: "La note methodologique est vide.",
-    ownerMissing: "Le service responsable n'est pas renseigne.",
-    duplicateLabels: "Certaines etiquettes sont dupliquees.",
-    longLabels: "Certaines etiquettes sont longues et peuvent casser la mise en page.",
+    methodologyEmpty: "La note méthodologique est vide.",
+    ownerMissing: "Le service responsable n'est pas renseigné.",
+    duplicateLabels: "Certaines étiquettes sont dupliquées.",
+    longLabels: "Certaines étiquettes sont longues et peuvent casser la mise en page.",
     columnTooManyRows:
-      "En colonnes verticales, plus de 8 categories deviennent vite difficiles a lire.",
+      "En colonnes verticales, plus de 8 catégories deviennent vite difficiles à lire.",
     annualStackedTooManyRows:
-      "Le template annuel empile devient plus difficile a lire au-dela d'environ 10 categories.",
+      "Le template annuel empilé devient plus difficile à lire au-delà d'environ 10 catégories.",
     annualBalanceNeedsSigns:
-      "Le template +/- est plus parlant quand il contient a la fois des valeurs positives et negatives.",
-    tooManySeries: "Trop de series risquent de nuire a la lisibilite du graphique.",
+      "Le template +/- est plus parlant quand il contient à la fois des valeurs positives et négatives.",
+    tooManySeries: "Trop de séries risquent de nuire à la lisibilité du graphique.",
     noErrors: "Aucun blocage.",
-    noWarnings: "Aucun warning.",
-    qualityBlocked: "Bloque",
-    qualityWarning: "Pret avec reserves",
-    qualityReady: "Pret pour revue",
+    noWarnings: "Aucun avertissement.",
+    qualityBlocked: "Bloqué",
+    qualityWarning: "Prêt avec réserves",
+    qualityReady: "Prêt pour revue",
     emptyStateFixBlocks: "Corrige les blocages pour afficher le graphique.",
     templateKicker: "Template",
     seriesBalanceHelp:
-      "Le template colore automatiquement les valeurs positives en bleu et les negatives en rouge.",
+      "Le template colore automatiquement les valeurs positives en bleu et les négatives en rouge.",
     remove: "Supprimer",
-    seriesKicker: "Series",
-    seriesTitle: "Legende et couleurs",
+    seriesKicker: "Séries",
+    seriesTitle: "Légende et couleurs",
     colorLabel: "Couleur",
     seriesDescriptionMulti:
-      "Configure les series qui composeront les colonnes empilees.",
+      "Configure les séries qui composeront les colonnes empilées.",
     seriesDescriptionSingle:
-      "Template mono-serie. Le nom sert au payload et a la lecture des donnees.",
-    seriesName: ({ index }) => `Serie ${index}`,
-    tableLabelHeader: "Libelle",
-    tableLabelPlaceholder: "Libelle",
+      "Template mono-série. Le nom sert au payload et à la lecture des données.",
+    seriesName: ({ index }) => `Série ${index}`,
+    tableLabelHeader: "Libellé",
+    tableLabelPlaceholder: "Libellé",
     removeRowAria: ({ index }) => `Supprimer la ligne ${index}`,
     previewRowsWord: "lignes",
     sourceLabel: "Source",
     sourceUpper: "SOURCE",
-    exportUnavailable: "Impossible d'exporter: aucun SVG n'est disponible.",
+    exportUnavailable: "Impossible d'exporter : aucun SVG n'est disponible.",
     projectPrefix: "Projet",
     newProjectFallback: "Nouveau projet",
     copyWordPattern: /\bcopie\b/i,
@@ -314,29 +314,29 @@ function buildChartConfigs(language) {
 
   return {
     "annual-stacked": {
-      label: "Colonnes empilees",
-      previewLabel: "colonnes empilees",
+      label: "Colonnes empilées",
+      previewLabel: "colonnes empilées",
       seriesMode: "multi",
       minSeries: 2,
       maxSeries: 4,
       allowSeriesEditing: true,
       editableColors: true,
       templateNote:
-        "Template proche du rapport annuel: fond gris clair, colonnes empilees, total affiche au sommet et legende en pied de graphique.",
+        "Template proche du rapport annuel : fond gris clair, colonnes empilées, total affiché au sommet et légende en pied de graphique.",
       defaultSeries: [
         {
           id: "confederation_staff",
-          label: "Employes et employees de la Confederation",
+          label: "Employés et employées de la Confédération",
           color: REPORT_COLORS.grey,
         },
         {
           id: "external_staff",
-          label: "Personnes externes a l'administration federale",
+          label: "Personnes externes à l'administration fédérale",
           color: REPORT_COLORS.blue,
         },
         {
           id: "covid_alerts",
-          label: "Annonces liees au COVID-19",
+          label: "Annonces liées au COVID-19",
           color: REPORT_COLORS.red,
         },
       ],
@@ -350,7 +350,7 @@ function buildChartConfigs(language) {
       allowSeriesEditing: false,
       editableColors: false,
       templateNote:
-        "Template type compte de resultats: une seule serie, bleu au-dessus de zero, rouge en dessous, grille annuelle et ligne de base explicite.",
+        "Template type compte de résultats : une seule série, bleu au-dessus de zéro, rouge en dessous, grille annuelle et ligne de base explicite.",
       defaultSeries: [
         {
           id: "value",
@@ -368,7 +368,7 @@ function buildChartConfigs(language) {
       allowSeriesEditing: false,
       editableColors: true,
       templateNote:
-        "Template simple a une seule serie. Pratique pour une comparaison de categories rapide.",
+        "Template simple à une seule série. Pratique pour une comparaison de catégories rapide.",
       defaultSeries: [
         {
           id: "value",
@@ -386,7 +386,7 @@ function buildChartConfigs(language) {
       allowSeriesEditing: false,
       editableColors: true,
       templateNote:
-        "Template simple a une seule serie. Convient bien aux comparaisons annuelles ou temporelles courtes.",
+        "Template simple à une seule série. Convient bien aux comparaisons annuelles ou temporelles courtes.",
       defaultSeries: [
         {
           id: "value",
@@ -404,7 +404,7 @@ function buildChartConfigs(language) {
       allowSeriesEditing: false,
       editableColors: true,
       templateNote:
-        "Template simple a une seule serie. Ideal pour montrer une evolution dans le temps.",
+        "Template simple à une seule série. Idéal pour montrer une évolution dans le temps.",
       defaultSeries: [
         {
           id: "value",
@@ -531,16 +531,16 @@ function buildSampleStates(language, configs) {
 
   return {
     "annual-stacked": {
-      title: "Nombre de cas traites de lanceurs d'alerte 2015-2024",
+      title: "Nombre de cas traités de lanceurs d'alerte 2015-2024",
       subtitle: "",
       chartType: "annual-stacked",
       locale: "fr",
       source: "CDF",
       owner: "Rapport annuel",
       methodology:
-        "Exemple de structure inspiree du rapport annuel pour tester un graphique empile multi-series.",
+        "Exemple de structure inspirée du rapport annuel pour tester un graphique empilé multi-séries.",
       altText:
-        "Les cas traites augmentent fortement a partir de 2020, avec un poids important des categories employees, externes et COVID.",
+        "Les cas traités augmentent fortement à partir de 2020, avec un poids important des catégories employées, externes et COVID.",
       series: cloneData(configs["annual-stacked"].defaultSeries),
       rows: [
         { label: "2015", confederation_staff: "", external_staff: "42", covid_alerts: "19" },
@@ -556,16 +556,16 @@ function buildSampleStates(language, configs) {
       ],
     },
     "annual-balance": {
-      title: "Solde du compte de resultats de la Confederation",
+      title: "Solde du compte de résultats de la Confédération",
       subtitle: "EN MILLIONS DE FRANCS, 2008-2023",
       chartType: "annual-balance",
       locale: "fr",
-      source: "AFF. COMPTE D'ETAT, TOME 1, p. 19",
+      source: "AFF. COMPTE D'ÉTAT, TOME 1, p. 19",
       owner: "Rapport annuel",
       methodology:
-        "Exemple de structure inspiree du rapport annuel pour tester un graphique a colonnes positives et negatives.",
+        "Exemple de structure inspirée du rapport annuel pour tester un graphique à colonnes positives et négatives.",
       altText:
-        "Le solde reste positif jusqu'en 2019, bascule en negatif des 2020 puis revient legerement en positif en 2023.",
+        "Le solde reste positif jusqu'en 2019, bascule en négatif dès 2020 puis revient légèrement en positif en 2023.",
       series: cloneData(configs["annual-balance"].defaultSeries),
       rows: [
         { label: "2008", value: "6273" },
@@ -587,19 +587,19 @@ function buildSampleStates(language, configs) {
       ],
     },
     bar: {
-      title: "Exemple de categories",
+      title: "Exemple de catégories",
       subtitle: "",
       chartType: "bar",
       locale: "fr",
       source: "Prototype",
       owner: "Graphics Lab",
-      methodology: "Jeu de donnees simple pour tester les barres horizontales.",
-      altText: "Le graphique compare quatre categories de demonstration.",
+      methodology: "Jeu de données simple pour tester les barres horizontales.",
+      altText: "Le graphique compare quatre catégories de démonstration.",
       series: cloneData(configs.bar.defaultSeries),
       rows: [
-        { label: "Audit numerique", value: "18" },
+        { label: "Audit numérique", value: "18" },
         { label: "Subventions", value: "11" },
-        { label: "Marches publics", value: "9" },
+        { label: "Marchés publics", value: "9" },
         { label: "Gouvernance", value: "14" },
       ],
     },
@@ -610,8 +610,8 @@ function buildSampleStates(language, configs) {
       locale: "fr",
       source: "Prototype",
       owner: "Graphics Lab",
-      methodology: "Jeu de donnees simple pour tester les colonnes verticales.",
-      altText: "Le graphique montre quatre colonnes verticales de demonstration.",
+      methodology: "Jeu de données simple pour tester les colonnes verticales.",
+      altText: "Le graphique montre quatre colonnes verticales de démonstration.",
       series: cloneData(configs.column.defaultSeries),
       rows: [
         { label: "2021", value: "14" },
@@ -621,14 +621,14 @@ function buildSampleStates(language, configs) {
       ],
     },
     line: {
-      title: "Evolution sur quatre ans",
+      title: "Évolution sur quatre ans",
       subtitle: "",
       chartType: "line",
       locale: "fr",
       source: "Prototype",
       owner: "Graphics Lab",
-      methodology: "Jeu de donnees simple pour tester la courbe.",
-      altText: "Le graphique montre une progression avec une legere baisse puis une hausse.",
+      methodology: "Jeu de données simple pour tester la courbe.",
+      altText: "Le graphique montre une progression avec une légère baisse puis une hausse.",
       series: cloneData(configs.line.defaultSeries),
       rows: [
         { label: "2021", value: "14" },
