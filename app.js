@@ -9,14 +9,21 @@ const SAMPLE_STATE = {
     "Comptage fictif utilisé uniquement pour illustrer un prototype de workflow graphique.",
   altText:
     "Le graphique compare quatre domaines et montre que les audits IT ont le volume le plus élevé.",
-  csvInput: `label,value
+  csvImport: `label,value
 Audits IT,18
 Marchés publics,11
 Subventions,9
 Gouvernance,14`,
+  rows: [
+    { label: "Audits IT", value: "18" },
+    { label: "Marchés publics", value: "11" },
+    { label: "Subventions", value: "9" },
+    { label: "Gouvernance", value: "14" },
+  ],
 };
 
 const STORAGE_KEY = "cdf-graphics-lab-draft";
+const MIN_ROWS = 6;
 
 const form = document.querySelector("#editor-form");
 const preview = document.querySelector("#chart-preview");
@@ -25,6 +32,9 @@ const errorsList = document.querySelector("#errors-list");
 const warningsList = document.querySelector("#warnings-list");
 const qualityChip = document.querySelector("#quality-chip");
 const previewMeta = document.querySelector("#preview-meta");
+const dataRowsBody = document.querySelector("#data-rows");
+const rowCountValue = document.querySelector("#row-count");
+const totalValue = document.querySelector("#value-total");
 
 const fields = {
   title: document.querySelector("#title"),
@@ -35,41 +45,45 @@ const fields = {
   owner: document.querySelector("#owner"),
   methodology: document.querySelector("#methodology"),
   altText: document.querySelector("#alt-text"),
-  csvInput: document.querySelector("#csv-input"),
+  csvImport: document.querySelector("#csv-import"),
 };
+
+let dataRows = [];
 
 document.querySelector("#load-sample").addEventListener("click", () => {
   applyState(SAMPLE_STATE);
-  render();
+  render({ syncTable: true });
 });
 
 document.querySelector("#reset-form").addEventListener("click", () => {
   localStorage.removeItem(STORAGE_KEY);
   applyState({
-    ...SAMPLE_STATE,
     title: "",
     subtitle: "",
+    chartType: "bar",
+    locale: "fr",
     source: "",
     owner: "",
     methodology: "",
     altText: "",
-    csvInput: "label,value\n",
+    csvImport: "label,value\n",
+    rows: Array.from({ length: MIN_ROWS }, createEmptyRow),
   });
-  render();
+  render({ syncTable: true });
 });
 
 document.querySelector("#save-draft").addEventListener("click", () => {
   const state = getState();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   qualityChip.textContent = "Brouillon sauvé";
-  setTimeout(render, 500);
+  setTimeout(() => render(), 500);
 });
 
 document.querySelector("#copy-config").addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(JSON.stringify(buildPayload(), null, 2));
     qualityChip.textContent = "JSON copié";
-    setTimeout(render, 500);
+    setTimeout(() => render(), 500);
   } catch (error) {
     window.alert("Le navigateur a refusé l'accès au presse-papiers.");
   }
@@ -93,15 +107,92 @@ document.querySelector("#export-svg").addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
-form.addEventListener("input", render);
-form.addEventListener("change", render);
+document.querySelector("#add-row").addEventListener("click", () => {
+  dataRows.push(createEmptyRow());
+  render({ syncTable: true });
+});
+
+document.querySelector("#clear-rows").addEventListener("click", () => {
+  dataRows = Array.from({ length: MIN_ROWS }, createEmptyRow);
+  render({ syncTable: true });
+});
+
+document.querySelector("#import-csv").addEventListener("click", () => {
+  const parsed = parseCsv(fields.csvImport.value);
+
+  if (parsed.rows.length === 0 && parsed.invalidRows === 0) {
+    window.alert("Aucune donnée exploitable n'a été trouvée dans le CSV.");
+    return;
+  }
+
+  dataRows = parsed.rows.map((row) => ({
+    label: row.label,
+    value: String(row.value),
+  }));
+
+  ensureMinimumRows();
+  render({ syncTable: true });
+
+  if (parsed.invalidRows > 0) {
+    window.alert(
+      `${parsed.invalidRows} ligne(s) n'ont pas pu être importées parce qu'elles étaient incomplètes ou invalides.`,
+    );
+  }
+});
+
+dataRowsBody.addEventListener("input", (event) => {
+  const target = event.target;
+  const index = Number.parseInt(target.dataset.index ?? "-1", 10);
+  const field = target.dataset.field;
+
+  if (!Number.isInteger(index) || !field || !dataRows[index]) {
+    return;
+  }
+
+  dataRows[index][field] = target.value;
+  render();
+});
+
+dataRowsBody.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-remove-row]");
+
+  if (!button) {
+    return;
+  }
+
+  const index = Number.parseInt(button.dataset.removeRow ?? "-1", 10);
+
+  if (!Number.isInteger(index) || !dataRows[index]) {
+    return;
+  }
+
+  dataRows.splice(index, 1);
+  ensureMinimumRows();
+  render({ syncTable: true });
+});
+
+form.addEventListener("input", (event) => {
+  if (event.target === fields.csvImport) {
+    return;
+  }
+
+  render();
+});
+
+form.addEventListener("change", (event) => {
+  if (event.target === fields.csvImport) {
+    return;
+  }
+
+  render();
+});
 
 boot();
 
 function boot() {
   const saved = loadSavedState();
   applyState(saved || SAMPLE_STATE);
-  render();
+  render({ syncTable: true });
 }
 
 function loadSavedState() {
@@ -114,9 +205,40 @@ function loadSavedState() {
 }
 
 function applyState(state) {
-  Object.entries(fields).forEach(([key, element]) => {
-    element.value = state[key] ?? "";
-  });
+  const normalized = normalizeState(state);
+
+  fields.title.value = normalized.title;
+  fields.subtitle.value = normalized.subtitle;
+  fields.chartType.value = normalized.chartType;
+  fields.locale.value = normalized.locale;
+  fields.source.value = normalized.source;
+  fields.owner.value = normalized.owner;
+  fields.methodology.value = normalized.methodology;
+  fields.altText.value = normalized.altText;
+  fields.csvImport.value = normalized.csvImport;
+  dataRows = normalized.rows;
+}
+
+function normalizeState(state) {
+  const parsedLegacy = state.csvInput ? parseCsv(state.csvInput) : { rows: [] };
+  const rowsSource = Array.isArray(state.rows) && state.rows.length > 0 ? state.rows : parsedLegacy.rows;
+  const rows = rowsSource.map((row) => ({
+    label: String(row.label ?? ""),
+    value: String(row.value ?? ""),
+  }));
+
+  return {
+    title: state.title ?? "",
+    subtitle: state.subtitle ?? "",
+    chartType: state.chartType ?? "bar",
+    locale: state.locale ?? "fr",
+    source: state.source ?? "",
+    owner: state.owner ?? "",
+    methodology: state.methodology ?? "",
+    altText: state.altText ?? "",
+    csvImport: state.csvImport ?? serializeRowsToCsv(rows),
+    rows: rows.length > 0 ? padRows(rows) : Array.from({ length: MIN_ROWS }, createEmptyRow),
+  };
 }
 
 function getState() {
@@ -129,13 +251,14 @@ function getState() {
     owner: fields.owner.value.trim(),
     methodology: fields.methodology.value.trim(),
     altText: fields.altText.value.trim(),
-    csvInput: fields.csvInput.value,
+    csvImport: fields.csvImport.value,
+    rows: dataRows.map((row) => ({ label: row.label, value: row.value })),
   };
 }
 
 function buildPayload() {
   const state = getState();
-  const parsed = parseCsv(state.csvInput);
+  const parsed = parseTableRows(dataRows);
 
   return {
     metadata: {
@@ -155,20 +278,27 @@ function buildPayload() {
   };
 }
 
-function render() {
+function render(options = {}) {
+  const { syncTable = false } = options;
   const state = getState();
-  const parsed = parseCsv(state.csvInput);
+  const parsed = parseTableRows(dataRows);
+  const checks = runChecks(state, parsed);
   const payload = {
     ...buildPayload(),
-    checks: runChecks(state, parsed),
+    checks,
   };
 
-  renderLists(payload.checks);
-  renderQuality(payload.checks);
+  if (syncTable) {
+    renderDataTable();
+  }
+
+  renderStats(parsed.rows);
+  renderLists(checks);
+  renderQuality(checks);
   renderPreviewMeta(parsed.rows.length, state.locale, state.chartType);
   renderPayload(payload);
 
-  if (payload.checks.errors.length > 0) {
+  if (checks.errors.length > 0) {
     preview.innerHTML = `
       <div class="empty-state">
         <p>Corrige les blocages pour afficher le graphique.</p>
@@ -184,6 +314,51 @@ function render() {
     chartType: state.chartType,
     rows: parsed.rows,
   });
+}
+
+function renderDataTable() {
+  dataRowsBody.innerHTML = dataRows
+    .map(
+      (row, index) => `
+        <tr>
+          <td>
+            <input
+              type="text"
+              value="${escapeAttribute(row.label)}"
+              data-index="${index}"
+              data-field="label"
+              placeholder="Libellé"
+            />
+          </td>
+          <td class="value-cell">
+            <input
+              type="text"
+              value="${escapeAttribute(row.value)}"
+              data-index="${index}"
+              data-field="value"
+              inputmode="decimal"
+              placeholder="0"
+            />
+          </td>
+          <td class="remove-cell">
+            <button
+              type="button"
+              class="row-remove"
+              data-remove-row="${index}"
+              aria-label="Supprimer la ligne ${index + 1}"
+            >
+              ×
+            </button>
+          </td>
+        </tr>
+      `,
+    )
+    .join("");
+}
+
+function renderStats(rows) {
+  rowCountValue.textContent = String(rows.length);
+  totalValue.textContent = formatNumber(rows.reduce((sum, row) => sum + row.value, 0));
 }
 
 function renderLists(checks) {
@@ -264,11 +439,37 @@ function runChecks(state, parsed) {
     warnings.push("Certaines étiquettes sont dupliquées.");
   }
 
-  if (labels.some((label) => label.length > 24)) {
+  if (labels.some((label) => label.length > 32)) {
     warnings.push("Certaines étiquettes sont longues et peuvent casser la mise en page.");
   }
 
   return { errors, warnings };
+}
+
+function parseTableRows(rows) {
+  const parsedRows = [];
+  let invalidRows = 0;
+
+  rows.forEach((row) => {
+    const label = String(row.label ?? "").trim();
+    const rawValue = String(row.value ?? "").trim();
+
+    if (!label && !rawValue) {
+      return;
+    }
+
+    const normalizedValue = rawValue.replace(/\s/g, "").replace(",", ".");
+    const value = Number.parseFloat(normalizedValue);
+
+    if (!label || rawValue === "" || Number.isNaN(value)) {
+      invalidRows += 1;
+      return;
+    }
+
+    parsedRows.push({ label, value });
+  });
+
+  return { rows: parsedRows, invalidRows };
 }
 
 function parseCsv(input) {
@@ -294,7 +495,7 @@ function parseCsv(input) {
     }
 
     const label = cells[0];
-    const value = Number.parseFloat(cells[1].replace(",", "."));
+    const value = Number.parseFloat(cells[1].replace(/\s/g, "").replace(",", "."));
 
     if (!label || Number.isNaN(value)) {
       invalidRows += 1;
@@ -364,9 +565,9 @@ function renderSvgChart({ title, subtitle, source, chartType, rows }) {
 
 function renderBarChart({ title, subtitle, source, rows }) {
   const width = 860;
-  const rowHeight = 34;
+  const rowHeight = 38;
   const chartTop = 126;
-  const chartLeft = 180;
+  const chartLeft = 210;
   const chartRight = 70;
   const maxValue = Math.max(...rows.map((row) => row.value), 1);
   const barSpace = width - chartLeft - chartRight;
@@ -378,11 +579,11 @@ function renderBarChart({ title, subtitle, source, rows }) {
       const barWidth = Math.max((row.value / maxValue) * barSpace, 2);
 
       return `
-        <text x="${chartLeft - 16}" y="${y + 19}" text-anchor="end" font-size="14" fill="#4f5a70">${escapeHtml(
+        <text x="${chartLeft - 16}" y="${y + 22}" text-anchor="end" font-size="14" fill="#32373c">${escapeHtml(
           row.label,
         )}</text>
-        <rect x="${chartLeft}" y="${y + 6}" width="${barWidth}" height="18" rx="9" fill="#a10f2b" />
-        <text x="${chartLeft + barWidth + 10}" y="${y + 20}" font-size="14" fill="#172033">${formatNumber(
+        <rect x="${chartLeft}" y="${y + 8}" width="${barWidth}" height="20" rx="10" fill="#ea5a4f" />
+        <text x="${chartLeft + barWidth + 10}" y="${y + 23}" font-size="14" fill="#32373c">${formatNumber(
           row.value,
         )}</text>
       `;
@@ -391,12 +592,12 @@ function renderBarChart({ title, subtitle, source, rows }) {
 
   return `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}">
-      <rect width="${width}" height="${height}" rx="28" fill="#fffdf8" />
-      <text x="42" y="52" font-size="28" font-weight="700" fill="#172033">${escapeHtml(title)}</text>
-      <text x="42" y="80" font-size="16" fill="#59627a">${escapeHtml(subtitle || "")}</text>
-      <line x1="${chartLeft}" x2="${chartLeft}" y1="${chartTop - 10}" y2="${height - 64}" stroke="#d8deea" />
+      <rect width="${width}" height="${height}" rx="28" fill="#ffffff" />
+      <text x="42" y="52" font-size="28" font-weight="700" fill="#32373c">${escapeHtml(title)}</text>
+      <text x="42" y="80" font-size="16" fill="#32373c" opacity="0.76">${escapeHtml(subtitle || "")}</text>
+      <line x1="${chartLeft}" x2="${chartLeft}" y1="${chartTop - 10}" y2="${height - 64}" stroke="#b8b8b8" />
       ${bars}
-      <text x="42" y="${height - 30}" font-size="13" fill="#59627a">Source: ${escapeHtml(source)}</text>
+      <text x="42" y="${height - 30}" font-size="13" fill="#32373c" opacity="0.76">Source: ${escapeHtml(source)}</text>
     </svg>
   `;
 }
@@ -411,14 +612,13 @@ function renderLineChart({ title, subtitle, source, rows }) {
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
-  const points = rows
-    .map((row, index) => {
-      const x =
-        padding.left +
-        (rows.length === 1 ? chartWidth / 2 : (index / (rows.length - 1)) * chartWidth);
-      const y = padding.top + chartHeight - ((row.value - minValue) / range) * chartHeight;
-      return { ...row, x, y };
-    });
+  const points = rows.map((row, index) => {
+    const x =
+      padding.left +
+      (rows.length === 1 ? chartWidth / 2 : (index / (rows.length - 1)) * chartWidth);
+    const y = padding.top + chartHeight - ((row.value - minValue) / range) * chartHeight;
+    return { ...row, x, y };
+  });
 
   const path = points
     .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
@@ -428,8 +628,8 @@ function renderLineChart({ title, subtitle, source, rows }) {
     const y = padding.top + (index / 4) * chartHeight;
     const value = maxValue - (index / 4) * range;
     return `
-      <line x1="${padding.left}" x2="${width - padding.right}" y1="${y}" y2="${y}" stroke="#e8ecf3" />
-      <text x="${padding.left - 12}" y="${y + 5}" text-anchor="end" font-size="13" fill="#59627a">${formatNumber(
+      <line x1="${padding.left}" x2="${width - padding.right}" y1="${y}" y2="${y}" stroke="#b8b8b8" opacity="0.5" />
+      <text x="${padding.left - 12}" y="${y + 5}" text-anchor="end" font-size="13" fill="#32373c" opacity="0.76">${formatNumber(
         value,
       )}</text>
     `;
@@ -438,7 +638,7 @@ function renderLineChart({ title, subtitle, source, rows }) {
   const labels = points
     .map(
       (point) => `
-        <text x="${point.x}" y="${height - 42}" text-anchor="middle" font-size="13" fill="#59627a">${escapeHtml(
+        <text x="${point.x}" y="${height - 42}" text-anchor="middle" font-size="13" fill="#32373c" opacity="0.76">${escapeHtml(
           point.label,
         )}</text>
       `,
@@ -448,8 +648,8 @@ function renderLineChart({ title, subtitle, source, rows }) {
   const dots = points
     .map(
       (point) => `
-        <circle cx="${point.x}" cy="${point.y}" r="5.5" fill="#a10f2b" />
-        <text x="${point.x}" y="${point.y - 12}" text-anchor="middle" font-size="13" fill="#172033">${formatNumber(
+        <circle cx="${point.x}" cy="${point.y}" r="5.5" fill="#ea5a4f" />
+        <text x="${point.x}" y="${point.y - 12}" text-anchor="middle" font-size="13" fill="#32373c">${formatNumber(
           point.value,
         )}</text>
       `,
@@ -458,16 +658,49 @@ function renderLineChart({ title, subtitle, source, rows }) {
 
   return `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}">
-      <rect width="${width}" height="${height}" rx="28" fill="#fffdf8" />
-      <text x="42" y="52" font-size="28" font-weight="700" fill="#172033">${escapeHtml(title)}</text>
-      <text x="42" y="80" font-size="16" fill="#59627a">${escapeHtml(subtitle || "")}</text>
+      <rect width="${width}" height="${height}" rx="28" fill="#ffffff" />
+      <text x="42" y="52" font-size="28" font-weight="700" fill="#32373c">${escapeHtml(title)}</text>
+      <text x="42" y="80" font-size="16" fill="#32373c" opacity="0.76">${escapeHtml(subtitle || "")}</text>
       ${grid}
-      <path d="${path}" fill="none" stroke="#a10f2b" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="${path}" fill="none" stroke="#003399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
       ${labels}
       ${dots}
-      <text x="42" y="${height - 24}" font-size="13" fill="#59627a">Source: ${escapeHtml(source)}</text>
+      <text x="42" y="${height - 24}" font-size="13" fill="#32373c" opacity="0.76">Source: ${escapeHtml(source)}</text>
     </svg>
   `;
+}
+
+function ensureMinimumRows() {
+  dataRows = padRows(dataRows);
+}
+
+function padRows(rows) {
+  const nextRows = rows.map((row) => ({
+    label: String(row.label ?? ""),
+    value: String(row.value ?? ""),
+  }));
+
+  while (nextRows.length < MIN_ROWS) {
+    nextRows.push(createEmptyRow());
+  }
+
+  return nextRows;
+}
+
+function createEmptyRow() {
+  return { label: "", value: "" };
+}
+
+function serializeRowsToCsv(rows) {
+  if (!rows || rows.length === 0) {
+    return "label,value\n";
+  }
+
+  const lines = rows
+    .filter((row) => row.label || row.value)
+    .map((row) => `${row.label},${row.value}`);
+
+  return ["label,value", ...lines].join("\n");
 }
 
 function formatNumber(value) {

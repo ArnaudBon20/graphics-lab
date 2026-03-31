@@ -5,11 +5,13 @@ Prototype front-only pour tester une logique de creation, verification et export
 ## Ce que fait ce prototype
 
 - edition locale d'un graphique simple
-- collage ou import manuel de donnees CSV
+- saisie directe des donnees dans un tableau
+- import CSV pour remplir rapidement le tableau
 - checks de base orientes institutionnels
 - preview immediate
 - export SVG
 - sauvegarde locale dans le navigateur
+- palette visuelle alignee sur des couleurs relevees sur efk.admin.ch
 
 ## Ce que ce prototype ne fait pas encore
 
