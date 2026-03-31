@@ -30,6 +30,7 @@ Prototype front-only pour tester une logique de creation, verification et export
 Le prototype est statique. Deux options simples:
 
 1. Ouvrir `index.html` dans un navigateur.
+   La version allemande est disponible via `de/index.html`.
 2. Lancer un petit serveur local, par exemple:
 
 ```bash
@@ -41,6 +42,7 @@ Puis ouvrir [http://localhost:4173](http://localhost:4173).
 ## Structure
 
 - `index.html`: interface
+- `de/index.html`: interface allemande
 - `styles.css`: design et layout
 - `app.js`: logique de formulaire, checks, rendu SVG, export
 

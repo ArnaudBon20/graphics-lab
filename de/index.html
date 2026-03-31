@@ -1,25 +1,25 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Graphics Lab</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="../styles.css" />
   </head>
   <body>
     <div class="shell">
       <header class="hero">
         <div>
-          <p class="eyebrow">Prototype interne</p>
+          <p class="eyebrow">Interner Prototyp</p>
           <h1>Graphics Lab</h1>
           <p class="lede">
-            Une base légère pour tester une logique "à la Q" sans backend: saisie,
-            contrôles, aperçu et export.
+            Eine leichte Basis, um eine Logik "wie Q" ohne Backend zu testen:
+            Eingabe, Pruefungen, Vorschau und Export.
           </p>
         </div>
-        <nav class="language-switch" aria-label="Versions linguistiques">
-          <a href="./" class="is-current">FR</a>
-          <a href="./de/">DE</a>
+        <nav class="language-switch" aria-label="Sprachversionen">
+          <a href="../">FR</a>
+          <a href="./" class="is-current">DE</a>
         </nav>
       </header>
 
@@ -27,40 +27,45 @@
         <section class="panel panel-form">
           <div class="panel-head">
             <div>
-              <p class="section-kicker">Données</p>
-              <h2>Contenu et saisie</h2>
+              <p class="section-kicker">Daten</p>
+              <h2>Inhalt und Eingabe</h2>
             </div>
             <div class="toolbar">
-              <button id="load-sample" type="button" class="ghost">Charger un exemple</button>
-              <button id="new-project" type="button" class="ghost">Nouveau projet vide</button>
+              <button id="load-sample" type="button" class="ghost">Beispiel laden</button>
+              <button id="new-project" type="button" class="ghost">Neues leeres Projekt</button>
             </div>
           </div>
 
           <section class="project-card">
             <div class="project-card-head">
               <div>
-                <p class="section-kicker">Projet</p>
-                <h3>Sauvegarde locale et historique</h3>
+                <p class="section-kicker">Projekt</p>
+                <h3>Lokale Speicherung und Historie</h3>
                 <p class="data-note">
-                  Chaque sauvegarde cree une nouvelle version locale dans ce navigateur.
+                  Jede Speicherung erzeugt eine neue lokale Version in diesem Browser.
                 </p>
               </div>
               <div class="toolbar">
-                <button id="fork-project" type="button" class="ghost">Nouveau depuis l'actuel</button>
-                <button id="save-project" type="button">Sauver une version</button>
+                <button id="fork-project" type="button" class="ghost">Neu aus aktuellem Stand</button>
+                <button id="save-project" type="button">Version speichern</button>
               </div>
             </div>
 
             <div class="project-grid">
               <label class="full">
-                Nom du projet
-                <input id="project-name" name="projectName" type="text" placeholder="Ex. Rapport annuel 2026 - lanceurs d'alerte" />
+                Projektname
+                <input
+                  id="project-name"
+                  name="projectName"
+                  type="text"
+                  placeholder="Z. B. Jahresbericht 2026 - Whistleblowing"
+                />
               </label>
 
               <article class="project-status-card">
-                <span>Etat</span>
-                <strong id="project-status">Projet non sauvegarde</strong>
-                <p id="project-version-meta" class="data-note">Aucune version locale pour l'instant.</p>
+                <span>Status</span>
+                <strong id="project-status">Projekt nicht gespeichert</strong>
+                <p id="project-version-meta" class="data-note">Noch keine lokale Version vorhanden.</p>
               </article>
             </div>
 
@@ -69,53 +74,53 @@
 
           <form id="editor-form" class="editor-grid">
             <label>
-              Titre
+              Titel
               <input id="title" name="title" type="text" />
             </label>
 
             <label>
-              Sous-titre
+              Untertitel
               <input id="subtitle" name="subtitle" type="text" />
             </label>
 
             <label>
-              Type de graphique
+              Diagrammtyp
               <select id="chart-type" name="chartType">
-                <option value="annual-stacked">Colonnes empilees (rapport annuel)</option>
-                <option value="annual-balance">Colonnes +/- (rapport annuel)</option>
-                <option value="bar">Barres horizontales</option>
-                <option value="column">Colonnes verticales</option>
-                <option value="line">Courbe</option>
+                <option value="annual-stacked">Gestapelte Saeulen (Jahresbericht)</option>
+                <option value="annual-balance">Saeulen +/- (Jahresbericht)</option>
+                <option value="bar">Horizontale Balken</option>
+                <option value="column">Vertikale Saeulen</option>
+                <option value="line">Linie</option>
               </select>
             </label>
 
             <label>
-              Langue
+              Sprache
               <select id="locale" name="locale">
-                <option value="fr">Français</option>
+                <option value="fr">Franzoesisch</option>
                 <option value="de">Deutsch</option>
-                <option value="it">Italiano</option>
-                <option value="en">English</option>
+                <option value="it">Italienisch</option>
+                <option value="en">Englisch</option>
               </select>
             </label>
 
             <label>
-              Source
+              Quelle
               <input id="source" name="source" type="text" />
             </label>
 
             <label>
-              Service responsable
+              Verantwortliche Stelle
               <input id="owner" name="owner" type="text" />
             </label>
 
             <label class="full">
-              Note méthodologique
+              Methodische Notiz
               <textarea id="methodology" name="methodology" rows="3"></textarea>
             </label>
 
             <label class="full">
-              Texte alternatif
+              Alternativtext
               <textarea id="alt-text" name="altText" rows="3"></textarea>
             </label>
 
@@ -124,17 +129,17 @@
             <section class="data-workbench full">
               <div class="data-workbench-head">
                 <div>
-                  <p class="section-kicker">Données</p>
-                  <h3>Table de saisie</h3>
+                  <p class="section-kicker">Daten</p>
+                  <h3>Eingabetabelle</h3>
                   <p class="data-note">
-                    Le tableau est l'espace principal. L'import CSV reste disponible
-                    juste en dessous pour aller plus vite.
+                    Die Tabelle ist der Hauptbereich. Der CSV-Import bleibt direkt
+                    darunter verfuegbar, um schneller zu arbeiten.
                   </p>
                 </div>
                 <div class="toolbar">
-                  <button id="add-series" type="button" class="ghost">Ajouter une serie</button>
-                  <button id="add-row" type="button" class="ghost">Ajouter une ligne</button>
-                  <button id="clear-rows" type="button" class="ghost">Vider les lignes</button>
+                  <button id="add-series" type="button" class="ghost">Serie hinzufuegen</button>
+                  <button id="add-row" type="button" class="ghost">Zeile hinzufuegen</button>
+                  <button id="clear-rows" type="button" class="ghost">Zeilen leeren</button>
                 </div>
               </div>
 
@@ -142,11 +147,11 @@
 
               <div class="data-stats">
                 <article class="stat-pill">
-                  <span>Lignes valides</span>
+                  <span>Gueltige Zeilen</span>
                   <strong id="row-count">0</strong>
                 </article>
                 <article class="stat-pill">
-                  <span>Series</span>
+                  <span>Serien</span>
                   <strong id="series-count">0</strong>
                 </article>
                 <article class="stat-pill">
@@ -164,11 +169,11 @@
 
               <div class="import-card">
                 <div>
-                  <p class="section-kicker">Import rapide</p>
-                  <h4>Coller un CSV</h4>
+                  <p class="section-kicker">Schnellimport</p>
+                  <h4>CSV einfuegen</h4>
                   <p class="data-note">
-                    Le CSV suit les colonnes du tableau. L'import remplit la table
-                    directement.
+                    Das CSV folgt den Spalten der Tabelle. Der Import fuellt die Tabelle
+                    direkt.
                   </p>
                 </div>
                 <textarea
@@ -178,33 +183,33 @@
                   placeholder="label,value"
                 ></textarea>
                 <div class="toolbar">
-                  <button id="import-csv" type="button">Importer le CSV</button>
+                  <button id="import-csv" type="button">CSV importieren</button>
                 </div>
               </div>
             </section>
           </form>
 
           <div class="footer-actions">
-            <button id="reset-form" type="button" class="ghost">Réinitialiser</button>
+            <button id="reset-form" type="button" class="ghost">Zuruecksetzen</button>
           </div>
         </section>
 
         <section class="panel panel-preview">
           <div class="panel-head">
             <div>
-              <p class="section-kicker">Graphique</p>
-              <h2>Checks et aperçu</h2>
+              <p class="section-kicker">Diagramm</p>
+              <h2>Checks und Vorschau</h2>
             </div>
-            <div id="quality-chip" class="quality-chip">Brouillon</div>
+            <div id="quality-chip" class="quality-chip">Entwurf</div>
           </div>
 
           <div class="checks-grid">
             <article class="status-box status-box-critical">
-              <h3>Blocages</h3>
+              <h3>Blocker</h3>
               <ul id="errors-list" class="status-list"></ul>
             </article>
             <article class="status-box status-box-warning">
-              <h3>Warnings</h3>
+              <h3>Warnungen</h3>
               <ul id="warnings-list" class="status-list"></ul>
             </article>
           </div>
@@ -212,20 +217,22 @@
           <article class="preview-card">
             <div class="preview-head">
               <div>
-                <p class="section-kicker">Preview</p>
-                <h3>Rendu principal</h3>
+                <p class="section-kicker">Vorschau</p>
+                <h3>Hauptrendering</h3>
               </div>
               <p id="preview-meta" class="preview-meta"></p>
             </div>
             <div id="chart-preview" class="chart-preview"></div>
             <p class="export-note">
-              L'export PNG est calibre pour la largeur utile d'une page Word A4 standard, afin d'eviter un redimensionnement manuel au collage.
+              Der PNG-Export ist auf die nutzbare Breite einer Standard-A4-Seite in
+              Word kalibriert, damit beim Einfuegen keine manuelle Groessenanpassung
+              noetig ist.
             </p>
           </article>
 
           <div class="footer-actions">
-            <button id="export-svg" type="button">Exporter en SVG</button>
-            <button id="export-png" type="button">Exporter en PNG Word</button>
+            <button id="export-svg" type="button">Als SVG exportieren</button>
+            <button id="export-png" type="button">Als PNG fuer Word exportieren</button>
           </div>
         </section>
 
@@ -233,10 +240,10 @@
           <div class="panel-head">
             <div>
               <p class="section-kicker">Code</p>
-              <h2>Configuration exportable</h2>
+              <h2>Exportierbare Konfiguration</h2>
             </div>
             <div class="toolbar">
-              <button id="copy-config" type="button" class="ghost">Copier le JSON</button>
+              <button id="copy-config" type="button" class="ghost">JSON kopieren</button>
             </div>
           </div>
 
@@ -247,6 +254,6 @@
       </main>
     </div>
 
-    <script src="./app.js"></script>
+    <script src="../app.js"></script>
   </body>
 </html>

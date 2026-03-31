@@ -18,219 +18,12 @@ const MAX_PROJECT_VERSIONS = 24;
 const WORD_EXPORT_WIDTH_CM = 15.9;
 const WORD_EXPORT_DPI = 96;
 const CRC32_TABLE = createCrc32Table();
-
-const CHART_CONFIGS = {
-  "annual-stacked": {
-    label: "Colonnes empilees (rapport annuel)",
-    previewLabel: "colonnes empilees",
-    seriesMode: "multi",
-    minSeries: 2,
-    maxSeries: 4,
-    allowSeriesEditing: true,
-    editableColors: true,
-    templateNote:
-      "Template proche du rapport annuel: fond gris clair, colonnes empilees, total affiche au sommet et legende en pied de graphique.",
-    defaultSeries: [
-      {
-        id: "confederation_staff",
-        label: "Employes et employees de la Confederation",
-        color: REPORT_COLORS.grey,
-      },
-      {
-        id: "external_staff",
-        label: "Personnes externes a l'administration federale",
-        color: REPORT_COLORS.blue,
-      },
-      {
-        id: "covid_alerts",
-        label: "Annonces liees au COVID-19",
-        color: REPORT_COLORS.red,
-      },
-    ],
-  },
-  "annual-balance": {
-    label: "Colonnes +/- (rapport annuel)",
-    previewLabel: "colonnes positives / negatives",
-    seriesMode: "single",
-    minSeries: 1,
-    maxSeries: 1,
-    allowSeriesEditing: false,
-    editableColors: false,
-    templateNote:
-      "Template type compte de resultats: une seule serie, bleu au-dessus de zero, rouge en dessous, grille annuelle et ligne de base explicite.",
-    defaultSeries: [
-      {
-        id: "value",
-        label: "Valeur",
-        color: REPORT_COLORS.blue,
-      },
-    ],
-  },
-  bar: {
-    label: "Barres horizontales",
-    previewLabel: "barres horizontales",
-    seriesMode: "single",
-    minSeries: 1,
-    maxSeries: 1,
-    allowSeriesEditing: false,
-    editableColors: true,
-    templateNote:
-      "Template simple a une seule serie. Pratique pour une comparaison de categories rapide.",
-    defaultSeries: [
-      {
-        id: "value",
-        label: "Valeur",
-        color: REPORT_COLORS.blue,
-      },
-    ],
-  },
-  column: {
-    label: "Colonnes verticales",
-    previewLabel: "colonnes verticales",
-    seriesMode: "single",
-    minSeries: 1,
-    maxSeries: 1,
-    allowSeriesEditing: false,
-    editableColors: true,
-    templateNote:
-      "Template simple a une seule serie. Convient bien aux comparaisons annuelles ou temporelles courtes.",
-    defaultSeries: [
-      {
-        id: "value",
-        label: "Valeur",
-        color: REPORT_COLORS.blue,
-      },
-    ],
-  },
-  line: {
-    label: "Courbe",
-    previewLabel: "courbe",
-    seriesMode: "single",
-    minSeries: 1,
-    maxSeries: 1,
-    allowSeriesEditing: false,
-    editableColors: true,
-    templateNote:
-      "Template simple a une seule serie. Ideal pour montrer une evolution dans le temps.",
-    defaultSeries: [
-      {
-        id: "value",
-        label: "Valeur",
-        color: REPORT_COLORS.blue,
-      },
-    ],
-  },
-};
-
-const SAMPLE_STATES = {
-  "annual-stacked": {
-    title: "Nombre de cas traites de lanceurs d'alerte 2015-2024",
-    subtitle: "",
-    chartType: "annual-stacked",
-    locale: "fr",
-    source: "CDF",
-    owner: "Rapport annuel",
-    methodology:
-      "Exemple de structure inspiree du rapport annuel pour tester un graphique empile multi-series.",
-    altText:
-      "Les cas traites augmentent fortement a partir de 2020, avec un poids important des categories employees, externes et COVID.",
-    series: cloneData(CHART_CONFIGS["annual-stacked"].defaultSeries),
-    rows: [
-      { label: "2015", confederation_staff: "", external_staff: "42", covid_alerts: "19" },
-      { label: "2016", confederation_staff: "", external_staff: "50", covid_alerts: "25" },
-      { label: "2017", confederation_staff: "", external_staff: "70", covid_alerts: "52" },
-      { label: "2018", confederation_staff: "", external_staff: "90", covid_alerts: "54" },
-      { label: "2019", confederation_staff: "", external_staff: "108", covid_alerts: "79" },
-      { label: "2020", confederation_staff: "311", external_staff: "96", covid_alerts: "77" },
-      { label: "2021", confederation_staff: "230", external_staff: "95", covid_alerts: "77" },
-      { label: "2022", confederation_staff: "47", external_staff: "133", covid_alerts: "99" },
-      { label: "2023", confederation_staff: "22", external_staff: "223", covid_alerts: "127" },
-      { label: "2024", confederation_staff: "10", external_staff: "252", covid_alerts: "113" },
-    ],
-  },
-  "annual-balance": {
-    title: "Solde du compte de resultats de la Confederation",
-    subtitle: "EN MILLIONS DE FRANCS, 2008-2023",
-    chartType: "annual-balance",
-    locale: "fr",
-    source: "AFF. COMPTE D'ETAT, TOME 1, p. 19",
-    owner: "Rapport annuel",
-    methodology:
-      "Exemple de structure inspiree du rapport annuel pour tester un graphique a colonnes positives et negatives.",
-    altText:
-      "Le solde reste positif jusqu'en 2019, bascule en negatif des 2020 puis revient legerement en positif en 2023.",
-    series: cloneData(CHART_CONFIGS["annual-balance"].defaultSeries),
-    rows: [
-      { label: "2008", value: "6273" },
-      { label: "2009", value: "7291" },
-      { label: "2010", value: "4139" },
-      { label: "2011", value: "2094" },
-      { label: "2012", value: "2443" },
-      { label: "2013", value: "1108" },
-      { label: "2014", value: "1193" },
-      { label: "2015", value: "2025" },
-      { label: "2016", value: "-66" },
-      { label: "2017", value: "4403" },
-      { label: "2018", value: "5701" },
-      { label: "2019", value: "5953" },
-      { label: "2020", value: "-16858" },
-      { label: "2021", value: "-9716" },
-      { label: "2022", value: "-2396" },
-      { label: "2023", value: "877" },
-    ],
-  },
-  bar: {
-    title: "Exemple de categories",
-    subtitle: "",
-    chartType: "bar",
-    locale: "fr",
-    source: "Prototype",
-    owner: "Graphics Lab",
-    methodology: "Jeu de donnees simple pour tester les barres horizontales.",
-    altText: "Le graphique compare quatre categories de demonstration.",
-    series: cloneData(CHART_CONFIGS.bar.defaultSeries),
-    rows: [
-      { label: "Audit numerique", value: "18" },
-      { label: "Subventions", value: "11" },
-      { label: "Marches publics", value: "9" },
-      { label: "Gouvernance", value: "14" },
-    ],
-  },
-  column: {
-    title: "Exemple annuel simple",
-    subtitle: "",
-    chartType: "column",
-    locale: "fr",
-    source: "Prototype",
-    owner: "Graphics Lab",
-    methodology: "Jeu de donnees simple pour tester les colonnes verticales.",
-    altText: "Le graphique montre quatre colonnes verticales de demonstration.",
-    series: cloneData(CHART_CONFIGS.column.defaultSeries),
-    rows: [
-      { label: "2021", value: "14" },
-      { label: "2022", value: "18" },
-      { label: "2023", value: "12" },
-      { label: "2024", value: "22" },
-    ],
-  },
-  line: {
-    title: "Evolution sur quatre ans",
-    subtitle: "",
-    chartType: "line",
-    locale: "fr",
-    source: "Prototype",
-    owner: "Graphics Lab",
-    methodology: "Jeu de donnees simple pour tester la courbe.",
-    altText: "Le graphique montre une progression avec une legere baisse puis une hausse.",
-    series: cloneData(CHART_CONFIGS.line.defaultSeries),
-    rows: [
-      { label: "2021", value: "14" },
-      { label: "2022", value: "18" },
-      { label: "2023", value: "12" },
-      { label: "2024", value: "22" },
-    ],
-  },
-};
+const UI_LANGUAGE = (document.documentElement.lang || "fr").toLowerCase().startsWith("de")
+  ? "de"
+  : "fr";
+const UI_TEXT = buildUiText(UI_LANGUAGE);
+const CHART_CONFIGS = buildChartConfigs(UI_LANGUAGE);
+const SAMPLE_STATES = buildSampleStates(UI_LANGUAGE, CHART_CONFIGS);
 
 const form = document.querySelector("#editor-form");
 const preview = document.querySelector("#chart-preview");
@@ -269,6 +62,582 @@ let seriesConfig = [];
 let dataRows = [];
 let currentProjectId = null;
 let currentVersionId = null;
+
+function buildUiText(language) {
+  if (language === "de") {
+    return {
+      jsonCopied: "JSON kopiert",
+      clipboardDenied: "Der Browser hat den Zugriff auf die Zwischenablage verweigert.",
+      pngExportFailed: "PNG kann im Moment nicht exportiert werden.",
+      noCsvData: "Im CSV wurden keine verwertbaren Daten gefunden.",
+      importInvalidRows: ({ count }) =>
+        `${count} Zeile(n) konnten nicht importiert werden, weil sie unvollstaendig oder ungueltig sind.`,
+      unsavedProject: "Projekt nicht gespeichert",
+      noLocalVersions: "Noch keine lokale Version vorhanden.",
+      projectDraft: "Lokaler Entwurf laeuft. Speichere eine Version, um sie in die Historie aufzunehmen.",
+      projectLoaded: ({ count, date }) => `${count} lokale Version(en). Geladene Version: ${date}.`,
+      historyEmpty: "Speichere eine erste Version, um eine lokale Projektbibliothek aufzubauen.",
+      historyKicker: "Historie",
+      historyLast: "Neueste",
+      historyProjectKicker: "Projekt",
+      historyVersions: "Versionen",
+      historyUpdatedAt: ({ date }) => `Aktualisiert am ${date}`,
+      historyLoadLatest: "Neueste laden",
+      deleteVersionAria: ({ date }) => `Version vom ${date} loeschen`,
+      deleteVersionConfirm: ({ date }) => `Version vom ${date} loeschen?`,
+      untitledProject: "Unbenanntes Projekt",
+      titleRequired: "Der Titel ist obligatorisch.",
+      sourceRequired: "Die Quelle ist obligatorisch.",
+      minRows: "Es braucht mindestens zwei Datenzeilen.",
+      invalidRows: ({ count }) => `${count} Datenzeile(n) enthalten einen ungueltigen Wert.`,
+      minSeriesStacked: "Das gestapelte Template braucht mindestens zwei Serien.",
+      altTextEmpty: "Der Alternativtext ist leer.",
+      methodologyEmpty: "Die methodische Notiz ist leer.",
+      ownerMissing: "Die verantwortliche Stelle ist nicht angegeben.",
+      duplicateLabels: "Einige Beschriftungen sind doppelt.",
+      longLabels: "Einige Beschriftungen sind lang und koennten das Layout sprengen.",
+      columnTooManyRows: "Bei vertikalen Saeulen werden mehr als 8 Kategorien schnell schwer lesbar.",
+      annualStackedTooManyRows:
+        "Das gestapelte Jahrestemplate wird ab etwa 10 Kategorien schwer lesbar.",
+      annualBalanceNeedsSigns:
+        "Das +/- Template ist aussagekraeftiger, wenn es sowohl positive als auch negative Werte enthaelt.",
+      tooManySeries: "Zu viele Serien koennen die Lesbarkeit beeintraechtigen.",
+      noErrors: "Keine Blocker.",
+      noWarnings: "Keine Warnungen.",
+      qualityBlocked: "Blockiert",
+      qualityWarning: "Bereit mit Vorbehalten",
+      qualityReady: "Bereit fuer Pruefung",
+      emptyStateFixBlocks: "Behebe die Blocker, um die Grafik anzuzeigen.",
+      templateKicker: "Vorlage",
+      seriesBalanceHelp:
+        "Dieses Template faerbt positive Werte automatisch blau und negative rot.",
+      remove: "Entfernen",
+      seriesKicker: "Serien",
+      seriesTitle: "Legende und Farben",
+      colorLabel: "Farbe",
+      seriesDescriptionMulti:
+        "Lege die Serien fest, aus denen die gestapelten Saeulen bestehen.",
+      seriesDescriptionSingle:
+        "Einzelserien-Template. Der Name dient dem Payload und dem Lesen der Daten.",
+      seriesName: ({ index }) => `Serie ${index}`,
+      tableLabelHeader: "Beschriftung",
+      tableLabelPlaceholder: "Beschriftung",
+      removeRowAria: ({ index }) => `Zeile ${index} loeschen`,
+      previewRowsWord: "Zeilen",
+      sourceLabel: "Quelle",
+      sourceUpper: "QUELLE",
+      exportUnavailable: "Export nicht moeglich: Es ist kein SVG verfuegbar.",
+      projectPrefix: "Projekt",
+      newProjectFallback: "Neues Projekt",
+      copyWordPattern: /\bkopie\b/i,
+      copySuffix: "Kopie",
+    };
+  }
+
+  return {
+    jsonCopied: "JSON copie",
+    clipboardDenied: "Le navigateur a refuse l'acces au presse-papiers.",
+    pngExportFailed: "Impossible d'exporter le PNG pour le moment.",
+    noCsvData: "Aucune donnee exploitable n'a ete trouvee dans le CSV.",
+    importInvalidRows: ({ count }) =>
+      `${count} ligne(s) n'ont pas pu etre importees parce qu'elles etaient incompletes ou invalides.`,
+    unsavedProject: "Projet non sauvegarde",
+    noLocalVersions: "Aucune version locale pour l'instant.",
+    projectDraft:
+      "Brouillon local en cours. Sauver une version pour l'ajouter a l'historique.",
+    projectLoaded: ({ count, date }) => `${count} version(s) locale(s). Version chargee: ${date}.`,
+    historyEmpty: "Sauve une premiere version pour commencer une bibliotheque de projets locale.",
+    historyKicker: "Historique",
+    historyLast: "Derniere",
+    historyProjectKicker: "Projet",
+    historyVersions: "Versions",
+    historyUpdatedAt: ({ date }) => `Mis a jour le ${date}`,
+    historyLoadLatest: "Charger la derniere",
+    deleteVersionAria: ({ date }) => `Supprimer la version du ${date}`,
+    deleteVersionConfirm: ({ date }) => `Supprimer la version du ${date} ?`,
+    untitledProject: "Projet sans titre",
+    titleRequired: "Le titre est obligatoire.",
+    sourceRequired: "La source est obligatoire.",
+    minRows: "Il faut au moins deux lignes de donnees.",
+    invalidRows: ({ count }) => `${count} ligne(s) de donnees contiennent une valeur invalide.`,
+    minSeriesStacked: "Le template empile exige au moins deux series.",
+    altTextEmpty: "Le texte alternatif est vide.",
+    methodologyEmpty: "La note methodologique est vide.",
+    ownerMissing: "Le service responsable n'est pas renseigne.",
+    duplicateLabels: "Certaines etiquettes sont dupliquees.",
+    longLabels: "Certaines etiquettes sont longues et peuvent casser la mise en page.",
+    columnTooManyRows:
+      "En colonnes verticales, plus de 8 categories deviennent vite difficiles a lire.",
+    annualStackedTooManyRows:
+      "Le template annuel empile devient plus difficile a lire au-dela d'environ 10 categories.",
+    annualBalanceNeedsSigns:
+      "Le template +/- est plus parlant quand il contient a la fois des valeurs positives et negatives.",
+    tooManySeries: "Trop de series risquent de nuire a la lisibilite du graphique.",
+    noErrors: "Aucun blocage.",
+    noWarnings: "Aucun warning.",
+    qualityBlocked: "Bloque",
+    qualityWarning: "Pret avec reserves",
+    qualityReady: "Pret pour revue",
+    emptyStateFixBlocks: "Corrige les blocages pour afficher le graphique.",
+    templateKicker: "Template",
+    seriesBalanceHelp:
+      "Le template colore automatiquement les valeurs positives en bleu et les negatives en rouge.",
+    remove: "Supprimer",
+    seriesKicker: "Series",
+    seriesTitle: "Legende et couleurs",
+    colorLabel: "Couleur",
+    seriesDescriptionMulti:
+      "Configure les series qui composeront les colonnes empilees.",
+    seriesDescriptionSingle:
+      "Template mono-serie. Le nom sert au payload et a la lecture des donnees.",
+    seriesName: ({ index }) => `Serie ${index}`,
+    tableLabelHeader: "Libelle",
+    tableLabelPlaceholder: "Libelle",
+    removeRowAria: ({ index }) => `Supprimer la ligne ${index}`,
+    previewRowsWord: "lignes",
+    sourceLabel: "Source",
+    sourceUpper: "SOURCE",
+    exportUnavailable: "Impossible d'exporter: aucun SVG n'est disponible.",
+    projectPrefix: "Projet",
+    newProjectFallback: "Nouveau projet",
+    copyWordPattern: /\bcopie\b/i,
+    copySuffix: "copie",
+  };
+}
+
+function buildChartConfigs(language) {
+  if (language === "de") {
+    return {
+      "annual-stacked": {
+        label: "Gestapelte Saeulen (Jahresbericht)",
+        previewLabel: "gestapelte saeulen",
+        seriesMode: "multi",
+        minSeries: 2,
+        maxSeries: 4,
+        allowSeriesEditing: true,
+        editableColors: true,
+        templateNote:
+          "Template nahe am Jahresbericht: hellgrauer Hintergrund, gestapelte Saeulen, Totale oben und Legende unter dem Diagramm.",
+        defaultSeries: [
+          {
+            id: "confederation_staff",
+            label: "Mitarbeitende der Bundesverwaltung",
+            color: REPORT_COLORS.grey,
+          },
+          {
+            id: "external_staff",
+            label: "Externe Personen der Bundesverwaltung",
+            color: REPORT_COLORS.blue,
+          },
+          {
+            id: "covid_alerts",
+            label: "Meldungen mit Bezug zu COVID-19",
+            color: REPORT_COLORS.red,
+          },
+        ],
+      },
+      "annual-balance": {
+        label: "Saeulen +/- (Jahresbericht)",
+        previewLabel: "positive / negative saeulen",
+        seriesMode: "single",
+        minSeries: 1,
+        maxSeries: 1,
+        allowSeriesEditing: false,
+        editableColors: false,
+        templateNote:
+          "Template fuer Ergebnisrechnungen: eine Serie, blau ueber null, rot darunter, mit Jahresraster und klarer Nulllinie.",
+        defaultSeries: [
+          {
+            id: "value",
+            label: "Wert",
+            color: REPORT_COLORS.blue,
+          },
+        ],
+      },
+      bar: {
+        label: "Horizontale Balken",
+        previewLabel: "horizontale balken",
+        seriesMode: "single",
+        minSeries: 1,
+        maxSeries: 1,
+        allowSeriesEditing: false,
+        editableColors: true,
+        templateNote:
+          "Einfaches Einzelserien-Template. Praktisch fuer einen schnellen Kategorienvergleich.",
+        defaultSeries: [
+          {
+            id: "value",
+            label: "Wert",
+            color: REPORT_COLORS.blue,
+          },
+        ],
+      },
+      column: {
+        label: "Vertikale Saeulen",
+        previewLabel: "vertikale saeulen",
+        seriesMode: "single",
+        minSeries: 1,
+        maxSeries: 1,
+        allowSeriesEditing: false,
+        editableColors: true,
+        templateNote:
+          "Einfaches Einzelserien-Template. Geeignet fuer kurze Jahres- oder Zeitvergleiche.",
+        defaultSeries: [
+          {
+            id: "value",
+            label: "Wert",
+            color: REPORT_COLORS.blue,
+          },
+        ],
+      },
+      line: {
+        label: "Linie",
+        previewLabel: "linie",
+        seriesMode: "single",
+        minSeries: 1,
+        maxSeries: 1,
+        allowSeriesEditing: false,
+        editableColors: true,
+        templateNote:
+          "Einfaches Einzelserien-Template. Ideal, um eine Entwicklung ueber die Zeit zu zeigen.",
+        defaultSeries: [
+          {
+            id: "value",
+            label: "Wert",
+            color: REPORT_COLORS.blue,
+          },
+        ],
+      },
+    };
+  }
+
+  return {
+    "annual-stacked": {
+      label: "Colonnes empilees (rapport annuel)",
+      previewLabel: "colonnes empilees",
+      seriesMode: "multi",
+      minSeries: 2,
+      maxSeries: 4,
+      allowSeriesEditing: true,
+      editableColors: true,
+      templateNote:
+        "Template proche du rapport annuel: fond gris clair, colonnes empilees, total affiche au sommet et legende en pied de graphique.",
+      defaultSeries: [
+        {
+          id: "confederation_staff",
+          label: "Employes et employees de la Confederation",
+          color: REPORT_COLORS.grey,
+        },
+        {
+          id: "external_staff",
+          label: "Personnes externes a l'administration federale",
+          color: REPORT_COLORS.blue,
+        },
+        {
+          id: "covid_alerts",
+          label: "Annonces liees au COVID-19",
+          color: REPORT_COLORS.red,
+        },
+      ],
+    },
+    "annual-balance": {
+      label: "Colonnes +/- (rapport annuel)",
+      previewLabel: "colonnes positives / negatives",
+      seriesMode: "single",
+      minSeries: 1,
+      maxSeries: 1,
+      allowSeriesEditing: false,
+      editableColors: false,
+      templateNote:
+        "Template type compte de resultats: une seule serie, bleu au-dessus de zero, rouge en dessous, grille annuelle et ligne de base explicite.",
+      defaultSeries: [
+        {
+          id: "value",
+          label: "Valeur",
+          color: REPORT_COLORS.blue,
+        },
+      ],
+    },
+    bar: {
+      label: "Barres horizontales",
+      previewLabel: "barres horizontales",
+      seriesMode: "single",
+      minSeries: 1,
+      maxSeries: 1,
+      allowSeriesEditing: false,
+      editableColors: true,
+      templateNote:
+        "Template simple a une seule serie. Pratique pour une comparaison de categories rapide.",
+      defaultSeries: [
+        {
+          id: "value",
+          label: "Valeur",
+          color: REPORT_COLORS.blue,
+        },
+      ],
+    },
+    column: {
+      label: "Colonnes verticales",
+      previewLabel: "colonnes verticales",
+      seriesMode: "single",
+      minSeries: 1,
+      maxSeries: 1,
+      allowSeriesEditing: false,
+      editableColors: true,
+      templateNote:
+        "Template simple a une seule serie. Convient bien aux comparaisons annuelles ou temporelles courtes.",
+      defaultSeries: [
+        {
+          id: "value",
+          label: "Valeur",
+          color: REPORT_COLORS.blue,
+        },
+      ],
+    },
+    line: {
+      label: "Courbe",
+      previewLabel: "courbe",
+      seriesMode: "single",
+      minSeries: 1,
+      maxSeries: 1,
+      allowSeriesEditing: false,
+      editableColors: true,
+      templateNote:
+        "Template simple a une seule serie. Ideal pour montrer une evolution dans le temps.",
+      defaultSeries: [
+        {
+          id: "value",
+          label: "Valeur",
+          color: REPORT_COLORS.blue,
+        },
+      ],
+    },
+  };
+}
+
+function buildSampleStates(language, configs) {
+  if (language === "de") {
+    return {
+      "annual-stacked": {
+        title: "Anzahl bearbeiteter Faelle bei Whistleblower-Meldungen 2015-2024",
+        subtitle: "",
+        chartType: "annual-stacked",
+        locale: "de",
+        source: "EFK",
+        owner: "Jahresbericht",
+        methodology:
+          "Beispielstruktur nach dem Vorbild des Jahresberichts, um ein gestapeltes Mehrserien-Diagramm zu testen.",
+        altText:
+          "Die bearbeiteten Faelle nehmen ab 2020 stark zu, mit einem grossen Anteil von Mitarbeitenden, Externen und COVID-Bezuegen.",
+        series: cloneData(configs["annual-stacked"].defaultSeries),
+        rows: [
+          { label: "2015", confederation_staff: "", external_staff: "42", covid_alerts: "19" },
+          { label: "2016", confederation_staff: "", external_staff: "50", covid_alerts: "25" },
+          { label: "2017", confederation_staff: "", external_staff: "70", covid_alerts: "52" },
+          { label: "2018", confederation_staff: "", external_staff: "90", covid_alerts: "54" },
+          { label: "2019", confederation_staff: "", external_staff: "108", covid_alerts: "79" },
+          { label: "2020", confederation_staff: "311", external_staff: "96", covid_alerts: "77" },
+          { label: "2021", confederation_staff: "230", external_staff: "95", covid_alerts: "77" },
+          { label: "2022", confederation_staff: "47", external_staff: "133", covid_alerts: "99" },
+          { label: "2023", confederation_staff: "22", external_staff: "223", covid_alerts: "127" },
+          { label: "2024", confederation_staff: "10", external_staff: "252", covid_alerts: "113" },
+        ],
+      },
+      "annual-balance": {
+        title: "Saldo der Erfolgsrechnung des Bundes",
+        subtitle: "IN MILLIONEN FRANKEN, 2008-2023",
+        chartType: "annual-balance",
+        locale: "de",
+        source: "EFV. STAATSRECHNUNG, BAND 1, S. 19",
+        owner: "Jahresbericht",
+        methodology:
+          "Beispielstruktur nach dem Vorbild des Jahresberichts, um ein Diagramm mit positiven und negativen Saeulen zu testen.",
+        altText:
+          "Der Saldo bleibt bis 2019 positiv, kippt ab 2020 ins Negative und wird 2023 wieder leicht positiv.",
+        series: cloneData(configs["annual-balance"].defaultSeries),
+        rows: [
+          { label: "2008", value: "6273" },
+          { label: "2009", value: "7291" },
+          { label: "2010", value: "4139" },
+          { label: "2011", value: "2094" },
+          { label: "2012", value: "2443" },
+          { label: "2013", value: "1108" },
+          { label: "2014", value: "1193" },
+          { label: "2015", value: "2025" },
+          { label: "2016", value: "-66" },
+          { label: "2017", value: "4403" },
+          { label: "2018", value: "5701" },
+          { label: "2019", value: "5953" },
+          { label: "2020", value: "-16858" },
+          { label: "2021", value: "-9716" },
+          { label: "2022", value: "-2396" },
+          { label: "2023", value: "877" },
+        ],
+      },
+      bar: {
+        title: "Beispiel fuer Kategorien",
+        subtitle: "",
+        chartType: "bar",
+        locale: "de",
+        source: "Prototyp",
+        owner: "Graphics Lab",
+        methodology: "Einfacher Datensatz zum Testen horizontaler Balken.",
+        altText: "Das Diagramm vergleicht vier Beispielkategorien.",
+        series: cloneData(configs.bar.defaultSeries),
+        rows: [
+          { label: "Digitale Pruefung", value: "18" },
+          { label: "Subventionen", value: "11" },
+          { label: "Oeffentliche Beschaffung", value: "9" },
+          { label: "Governance", value: "14" },
+        ],
+      },
+      column: {
+        title: "Einfaches Jahresbeispiel",
+        subtitle: "",
+        chartType: "column",
+        locale: "de",
+        source: "Prototyp",
+        owner: "Graphics Lab",
+        methodology: "Einfacher Datensatz zum Testen vertikaler Saeulen.",
+        altText: "Das Diagramm zeigt vier vertikale Beispielsaeulen.",
+        series: cloneData(configs.column.defaultSeries),
+        rows: [
+          { label: "2021", value: "14" },
+          { label: "2022", value: "18" },
+          { label: "2023", value: "12" },
+          { label: "2024", value: "22" },
+        ],
+      },
+      line: {
+        title: "Entwicklung ueber vier Jahre",
+        subtitle: "",
+        chartType: "line",
+        locale: "de",
+        source: "Prototyp",
+        owner: "Graphics Lab",
+        methodology: "Einfacher Datensatz zum Testen der Linie.",
+        altText: "Das Diagramm zeigt eine Entwicklung mit kleinem Rueckgang und anschliessendem Anstieg.",
+        series: cloneData(configs.line.defaultSeries),
+        rows: [
+          { label: "2021", value: "14" },
+          { label: "2022", value: "18" },
+          { label: "2023", value: "12" },
+          { label: "2024", value: "22" },
+        ],
+      },
+    };
+  }
+
+  return {
+    "annual-stacked": {
+      title: "Nombre de cas traites de lanceurs d'alerte 2015-2024",
+      subtitle: "",
+      chartType: "annual-stacked",
+      locale: "fr",
+      source: "CDF",
+      owner: "Rapport annuel",
+      methodology:
+        "Exemple de structure inspiree du rapport annuel pour tester un graphique empile multi-series.",
+      altText:
+        "Les cas traites augmentent fortement a partir de 2020, avec un poids important des categories employees, externes et COVID.",
+      series: cloneData(configs["annual-stacked"].defaultSeries),
+      rows: [
+        { label: "2015", confederation_staff: "", external_staff: "42", covid_alerts: "19" },
+        { label: "2016", confederation_staff: "", external_staff: "50", covid_alerts: "25" },
+        { label: "2017", confederation_staff: "", external_staff: "70", covid_alerts: "52" },
+        { label: "2018", confederation_staff: "", external_staff: "90", covid_alerts: "54" },
+        { label: "2019", confederation_staff: "", external_staff: "108", covid_alerts: "79" },
+        { label: "2020", confederation_staff: "311", external_staff: "96", covid_alerts: "77" },
+        { label: "2021", confederation_staff: "230", external_staff: "95", covid_alerts: "77" },
+        { label: "2022", confederation_staff: "47", external_staff: "133", covid_alerts: "99" },
+        { label: "2023", confederation_staff: "22", external_staff: "223", covid_alerts: "127" },
+        { label: "2024", confederation_staff: "10", external_staff: "252", covid_alerts: "113" },
+      ],
+    },
+    "annual-balance": {
+      title: "Solde du compte de resultats de la Confederation",
+      subtitle: "EN MILLIONS DE FRANCS, 2008-2023",
+      chartType: "annual-balance",
+      locale: "fr",
+      source: "AFF. COMPTE D'ETAT, TOME 1, p. 19",
+      owner: "Rapport annuel",
+      methodology:
+        "Exemple de structure inspiree du rapport annuel pour tester un graphique a colonnes positives et negatives.",
+      altText:
+        "Le solde reste positif jusqu'en 2019, bascule en negatif des 2020 puis revient legerement en positif en 2023.",
+      series: cloneData(configs["annual-balance"].defaultSeries),
+      rows: [
+        { label: "2008", value: "6273" },
+        { label: "2009", value: "7291" },
+        { label: "2010", value: "4139" },
+        { label: "2011", value: "2094" },
+        { label: "2012", value: "2443" },
+        { label: "2013", value: "1108" },
+        { label: "2014", value: "1193" },
+        { label: "2015", value: "2025" },
+        { label: "2016", value: "-66" },
+        { label: "2017", value: "4403" },
+        { label: "2018", value: "5701" },
+        { label: "2019", value: "5953" },
+        { label: "2020", value: "-16858" },
+        { label: "2021", value: "-9716" },
+        { label: "2022", value: "-2396" },
+        { label: "2023", value: "877" },
+      ],
+    },
+    bar: {
+      title: "Exemple de categories",
+      subtitle: "",
+      chartType: "bar",
+      locale: "fr",
+      source: "Prototype",
+      owner: "Graphics Lab",
+      methodology: "Jeu de donnees simple pour tester les barres horizontales.",
+      altText: "Le graphique compare quatre categories de demonstration.",
+      series: cloneData(configs.bar.defaultSeries),
+      rows: [
+        { label: "Audit numerique", value: "18" },
+        { label: "Subventions", value: "11" },
+        { label: "Marches publics", value: "9" },
+        { label: "Gouvernance", value: "14" },
+      ],
+    },
+    column: {
+      title: "Exemple annuel simple",
+      subtitle: "",
+      chartType: "column",
+      locale: "fr",
+      source: "Prototype",
+      owner: "Graphics Lab",
+      methodology: "Jeu de donnees simple pour tester les colonnes verticales.",
+      altText: "Le graphique montre quatre colonnes verticales de demonstration.",
+      series: cloneData(configs.column.defaultSeries),
+      rows: [
+        { label: "2021", value: "14" },
+        { label: "2022", value: "18" },
+        { label: "2023", value: "12" },
+        { label: "2024", value: "22" },
+      ],
+    },
+    line: {
+      title: "Evolution sur quatre ans",
+      subtitle: "",
+      chartType: "line",
+      locale: "fr",
+      source: "Prototype",
+      owner: "Graphics Lab",
+      methodology: "Jeu de donnees simple pour tester la courbe.",
+      altText: "Le graphique montre une progression avec une legere baisse puis une hausse.",
+      series: cloneData(configs.line.defaultSeries),
+      rows: [
+        { label: "2021", value: "14" },
+        { label: "2022", value: "18" },
+        { label: "2023", value: "12" },
+        { label: "2024", value: "22" },
+      ],
+    },
+  };
+}
 
 function getChartConfig(chartType) {
   return CHART_CONFIGS[chartType] || CHART_CONFIGS[DEFAULT_CHART_TYPE];
@@ -318,10 +687,10 @@ document.querySelector("#save-project").addEventListener("click", () => {
 document.querySelector("#copy-config").addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(JSON.stringify(buildPayload(), null, 2));
-    qualityChip.textContent = "JSON copie";
+    qualityChip.textContent = UI_TEXT.jsonCopied;
     setTimeout(() => render(), 500);
   } catch (error) {
-    window.alert("Le navigateur a refuse l'acces au presse-papiers.");
+    window.alert(UI_TEXT.clipboardDenied);
   }
 });
 
@@ -334,7 +703,7 @@ document.querySelector("#export-png").addEventListener("click", async () => {
     await exportCurrentChartAsPng();
   } catch (error) {
     console.error(error);
-    window.alert("Impossible d'exporter le PNG pour le moment.");
+    window.alert(UI_TEXT.pngExportFailed);
   }
 });
 
@@ -381,7 +750,7 @@ addSeriesButton.addEventListener("click", () => {
 
   seriesConfig.push({
     id: buildSeriesId(`serie-${seriesConfig.length + 1}`, seriesConfig.length),
-    label: `Serie ${seriesConfig.length + 1}`,
+    label: UI_TEXT.seriesName({ index: seriesConfig.length + 1 }),
     color: pickSeriesColor(seriesConfig.length),
   });
   dataRows = dataRows.map((row) => ({
@@ -406,7 +775,7 @@ document.querySelector("#import-csv").addEventListener("click", () => {
   const imported = parseCsv(fields.csvImport.value, currentChartType, seriesConfig);
 
   if (imported.rows.length === 0 && imported.invalidRows === 0) {
-    window.alert("Aucune donnee exploitable n'a ete trouvee dans le CSV.");
+    window.alert(UI_TEXT.noCsvData);
     return;
   }
 
@@ -415,9 +784,7 @@ document.querySelector("#import-csv").addEventListener("click", () => {
   render({ syncAll: true });
 
   if (imported.invalidRows > 0) {
-    window.alert(
-      `${imported.invalidRows} ligne(s) n'ont pas pu etre importees parce qu'elles etaient incompletes ou invalides.`,
-    );
+    window.alert(UI_TEXT.importInvalidRows({ count: imported.invalidRows }));
   }
 });
 
@@ -650,7 +1017,7 @@ function normalizeSeries(chartType, rawSeries) {
 
   return rawSeries.slice(0, config.maxSeries).map((series, index) => ({
     id: series.id || defaults[index]?.id || buildSeriesId(series.label, index),
-    label: String(series.label ?? defaults[index]?.label ?? `Serie ${index + 1}`),
+    label: String(series.label ?? defaults[index]?.label ?? UI_TEXT.seriesName({ index: index + 1 })),
     color: series.color || defaults[index]?.color || pickSeriesColor(index),
   }));
 }
@@ -732,7 +1099,7 @@ function migrateSeries(nextType, currentSeries) {
   if (currentSeries.length > 1) {
     return currentSeries.slice(0, nextConfig.maxSeries).map((series, index) => ({
       id: buildSeriesId(series.id || series.label, index),
-      label: series.label || `Serie ${index + 1}`,
+      label: series.label || UI_TEXT.seriesName({ index: index + 1 }),
       color: series.color || pickSeriesColor(index),
     }));
   }
@@ -851,7 +1218,7 @@ function render(options = {}) {
   if (checks.errors.length > 0) {
     preview.innerHTML = `
       <div class="empty-state">
-        <p>Corrige les blocages pour afficher le graphique.</p>
+        <p>${escapeHtml(UI_TEXT.emptyStateFixBlocks)}</p>
       </div>
     `;
     return;
@@ -870,7 +1237,7 @@ function render(options = {}) {
 function renderTemplateNote() {
   const config = getChartConfig(currentChartType);
   templateNote.innerHTML = `
-    <p class="section-kicker">Template</p>
+    <p class="section-kicker">${escapeHtml(UI_TEXT.templateKicker)}</p>
     <h3>${escapeHtml(config.label)}</h3>
     <p class="data-note">${escapeHtml(config.templateNote)}</p>
   `;
@@ -883,21 +1250,21 @@ function renderSeriesEditor() {
       const canRemove = config.allowSeriesEditing && seriesConfig.length > config.minSeries;
       const colorHelp =
         currentChartType === "annual-balance"
-          ? `<p class="series-help">Le template colore automatiquement les valeurs positives en bleu et les negatives en rouge.</p>`
+          ? `<p class="series-help">${escapeHtml(UI_TEXT.seriesBalanceHelp)}</p>`
           : "";
 
       return `
         <article class="series-card">
           <div class="series-card-head">
-            <strong>Serie ${index + 1}</strong>
+            <strong>${escapeHtml(UI_TEXT.seriesName({ index: index + 1 }))}</strong>
             ${
               canRemove
-                ? `<button type="button" class="ghost compact" data-remove-series="${index}">Supprimer</button>`
+                ? `<button type="button" class="ghost compact" data-remove-series="${index}">${escapeHtml(UI_TEXT.remove)}</button>`
                 : ""
             }
           </div>
           <label>
-            Libelle
+            ${escapeHtml(UI_TEXT.tableLabelHeader)}
             <input
               type="text"
               value="${escapeAttribute(series.label)}"
@@ -906,7 +1273,7 @@ function renderSeriesEditor() {
             />
           </label>
           <label>
-            Couleur
+            ${escapeHtml(UI_TEXT.colorLabel)}
             <input
               type="color"
               value="${escapeAttribute(series.color)}"
@@ -924,13 +1291,13 @@ function renderSeriesEditor() {
   seriesEditor.innerHTML = `
     <div class="series-head">
       <div>
-        <p class="section-kicker">Series</p>
-        <h4>Legende et couleurs</h4>
+        <p class="section-kicker">${escapeHtml(UI_TEXT.seriesKicker)}</p>
+        <h4>${escapeHtml(UI_TEXT.seriesTitle)}</h4>
         <p class="data-note">
           ${escapeHtml(
             config.seriesMode === "multi"
-              ? "Configure les series qui composeront les colonnes empilees."
-              : "Template mono-serie. Le nom sert au payload et a la lecture des donnees.",
+              ? UI_TEXT.seriesDescriptionMulti
+              : UI_TEXT.seriesDescriptionSingle,
           )}
         </p>
       </div>
@@ -946,7 +1313,7 @@ function renderDataColumns() {
 
   dataColumnsHead.innerHTML = `
     <tr>
-      <th>Libelle</th>
+      <th>${escapeHtml(UI_TEXT.tableLabelHeader)}</th>
       ${headers}
       <th></th>
     </tr>
@@ -982,7 +1349,7 @@ function renderDataTable() {
               value="${escapeAttribute(row.label)}"
               data-index="${index}"
               data-field="label"
-              placeholder="Libelle"
+              placeholder="${escapeAttribute(UI_TEXT.tableLabelHeader)}"
             />
           </td>
           ${valueCells(row, index)}
@@ -991,7 +1358,7 @@ function renderDataTable() {
               type="button"
               class="row-remove"
               data-remove-row="${index}"
-              aria-label="Supprimer la ligne ${index + 1}"
+              aria-label="${escapeAttribute(UI_TEXT.removeRowAria({ index: index + 1 }))}"
             >
               ×
             </button>
@@ -1016,8 +1383,8 @@ function renderStats(rows) {
 }
 
 function renderLists(checks) {
-  const errors = checks.errors.length ? checks.errors : ["Aucun blocage."];
-  const warnings = checks.warnings.length ? checks.warnings : ["Aucun warning."];
+  const errors = checks.errors.length ? checks.errors : [UI_TEXT.noErrors];
+  const warnings = checks.warnings.length ? checks.warnings : [UI_TEXT.noWarnings];
 
   errorsList.innerHTML = errors.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
   warningsList.innerHTML = warnings.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
@@ -1028,21 +1395,21 @@ function renderQuality(checks) {
 
   if (checks.errors.length > 0) {
     qualityChip.classList.add("blocked");
-    qualityChip.textContent = "Bloque";
+    qualityChip.textContent = UI_TEXT.qualityBlocked;
     return;
   }
 
   if (checks.warnings.length > 0) {
     qualityChip.classList.add("warning");
-    qualityChip.textContent = "Pret avec reserves";
+    qualityChip.textContent = UI_TEXT.qualityWarning;
     return;
   }
 
-  qualityChip.textContent = "Pret pour revue";
+  qualityChip.textContent = UI_TEXT.qualityReady;
 }
 
 function renderPreviewMeta(rowCount, locale, chartType) {
-  previewMeta.textContent = `${rowCount} lignes • ${locale.toUpperCase()} • ${getChartConfig(chartType).previewLabel}`;
+  previewMeta.textContent = `${rowCount} ${UI_TEXT.previewRowsWord} • ${locale.toUpperCase()} • ${getChartConfig(chartType).previewLabel}`;
 }
 
 function renderPayload(payload) {
@@ -1056,16 +1423,17 @@ function renderProjectStatus() {
 
   if (project && activeVersion) {
     projectStatus.textContent = project.name;
-    projectVersionMeta.textContent = `${project.versions.length} version(s) locale(s). Version chargee: ${formatDateTime(
-      activeVersion.savedAt,
-    )}.`;
+    projectVersionMeta.textContent = UI_TEXT.projectLoaded({
+      count: project.versions.length,
+      date: formatDateTime(activeVersion.savedAt),
+    });
     return;
   }
 
-  projectStatus.textContent = draftName || "Projet non sauvegarde";
+  projectStatus.textContent = draftName || UI_TEXT.unsavedProject;
   projectVersionMeta.textContent = draftName
-    ? "Brouillon local en cours. Sauver une version pour l'ajouter a l'historique."
-    : "Aucune version locale pour l'instant.";
+    ? UI_TEXT.projectDraft
+    : UI_TEXT.noLocalVersions;
 }
 
 function renderProjectLibrary() {
@@ -1074,9 +1442,9 @@ function renderProjectLibrary() {
   if (projects.length === 0) {
     projectHistory.innerHTML = `
       <article class="history-empty">
-        <p class="section-kicker">Historique</p>
+        <p class="section-kicker">${escapeHtml(UI_TEXT.historyKicker)}</p>
         <p class="data-note">
-          Sauve une premiere version pour commencer une bibliotheque de projets locale.
+          ${escapeHtml(UI_TEXT.historyEmpty)}
         </p>
       </article>
     `;
@@ -1090,7 +1458,7 @@ function renderProjectLibrary() {
         .slice(0, 6)
         .map((version, index) => {
           const isCurrent = project.id === currentProjectId && version.id === currentVersionId;
-          const label = index === 0 ? "Derniere" : formatShortDateTime(version.savedAt);
+          const label = index === 0 ? UI_TEXT.historyLast : formatShortDateTime(version.savedAt);
 
           return `
             <div class="version-item">
@@ -1104,7 +1472,9 @@ function renderProjectLibrary() {
               <button
                 type="button"
                 class="version-delete"
-                aria-label="Supprimer la version ${escapeAttribute(formatDateTime(version.savedAt))}"
+                aria-label="${escapeAttribute(
+                  UI_TEXT.deleteVersionAria({ date: formatDateTime(version.savedAt) }),
+                )}"
                 data-delete-version="${project.id}:${version.id}"
               >
                 ×
@@ -1118,17 +1488,21 @@ function renderProjectLibrary() {
         <article class="history-card ${project.id === currentProjectId ? "current" : ""}">
           <div class="history-card-head">
             <div>
-              <p class="section-kicker">Projet</p>
+              <p class="section-kicker">${escapeHtml(UI_TEXT.historyProjectKicker)}</p>
               <strong>${escapeHtml(project.name)}</strong>
             </div>
             <div class="history-count">${project.versions.length}</div>
           </div>
           <div class="history-meta">
-            <p class="data-note">Mis a jour le ${escapeHtml(formatDateTime(project.updatedAt))}</p>
-            <span>Versions</span>
+            <p class="data-note">${escapeHtml(
+              UI_TEXT.historyUpdatedAt({ date: formatDateTime(project.updatedAt) }),
+            )}</p>
+            <span>${escapeHtml(UI_TEXT.historyVersions)}</span>
           </div>
           <div class="history-actions">
-            <button type="button" class="ghost compact" data-load-project="${project.id}">Charger la derniere</button>
+            <button type="button" class="ghost compact" data-load-project="${project.id}">${escapeHtml(
+              UI_TEXT.historyLoadLatest,
+            )}</button>
           </div>
           <div class="version-list">${versionsMarkup}</div>
         </article>
@@ -1238,7 +1612,7 @@ function deleteProjectVersion(projectId, versionId) {
   }
 
   const shouldDelete = window.confirm(
-    `Supprimer la version du ${formatDateTime(version.savedAt)} ?`,
+    UI_TEXT.deleteVersionConfirm({ date: formatDateTime(version.savedAt) }),
   );
 
   if (!shouldDelete) {
@@ -1308,7 +1682,7 @@ function saveProjects(projects) {
 }
 
 function normalizeProject(project) {
-  const name = String(project?.name ?? "").trim() || "Projet sans titre";
+  const name = String(project?.name ?? "").trim() || UI_TEXT.untitledProject;
   const createdAt = project?.createdAt || new Date().toISOString();
   const updatedAt = project?.updatedAt || createdAt;
   const versions = Array.isArray(project?.versions)
@@ -1341,51 +1715,51 @@ function runChecks(state, parsed) {
   const labels = parsed.rows.map((row) => row.label);
 
   if (!state.title) {
-    errors.push("Le titre est obligatoire.");
+    errors.push(UI_TEXT.titleRequired);
   }
 
   if (!state.source) {
-    errors.push("La source est obligatoire.");
+    errors.push(UI_TEXT.sourceRequired);
   }
 
   if (parsed.rows.length < 2) {
-    errors.push("Il faut au moins deux lignes de donnees.");
+    errors.push(UI_TEXT.minRows);
   }
 
   if (parsed.invalidRows > 0) {
-    errors.push(`${parsed.invalidRows} ligne(s) de donnees contiennent une valeur invalide.`);
+    errors.push(UI_TEXT.invalidRows({ count: parsed.invalidRows }));
   }
 
   if (state.chartType === "annual-stacked" && seriesConfig.length < 2) {
-    errors.push("Le template empile exige au moins deux series.");
+    errors.push(UI_TEXT.minSeriesStacked);
   }
 
   if (!state.altText) {
-    warnings.push("Le texte alternatif est vide.");
+    warnings.push(UI_TEXT.altTextEmpty);
   }
 
   if (!state.methodology) {
-    warnings.push("La note methodologique est vide.");
+    warnings.push(UI_TEXT.methodologyEmpty);
   }
 
   if (!state.owner) {
-    warnings.push("Le service responsable n'est pas renseigne.");
+    warnings.push(UI_TEXT.ownerMissing);
   }
 
   if (new Set(labels).size !== labels.length) {
-    warnings.push("Certaines etiquettes sont dupliquees.");
+    warnings.push(UI_TEXT.duplicateLabels);
   }
 
   if (labels.some((label) => label.length > 32)) {
-    warnings.push("Certaines etiquettes sont longues et peuvent casser la mise en page.");
+    warnings.push(UI_TEXT.longLabels);
   }
 
   if (state.chartType === "column" && parsed.rows.length > 8) {
-    warnings.push("En colonnes verticales, plus de 8 categories deviennent vite difficiles a lire.");
+    warnings.push(UI_TEXT.columnTooManyRows);
   }
 
   if (state.chartType === "annual-stacked" && parsed.rows.length > 10) {
-    warnings.push("Le template annuel empile devient plus difficile a lire au-dela d'environ 10 categories.");
+    warnings.push(UI_TEXT.annualStackedTooManyRows);
   }
 
   if (state.chartType === "annual-balance") {
@@ -1393,12 +1767,12 @@ function runChecks(state, parsed) {
     const hasNegative = parsed.rows.some((row) => row.value < 0);
 
     if (!hasPositive || !hasNegative) {
-      warnings.push("Le template +/- est plus parlant quand il contient a la fois des valeurs positives et negatives.");
+      warnings.push(UI_TEXT.annualBalanceNeedsSigns);
     }
   }
 
   if (config.seriesMode === "multi" && seriesConfig.length > MAX_SERIES) {
-    warnings.push("Trop de series risquent de nuire a la lisibilite du graphique.");
+    warnings.push(UI_TEXT.tooManySeries);
   }
 
   return { errors, warnings };
@@ -1475,7 +1849,7 @@ function parseCsv(input, chartType, currentSeriesConfig) {
       .slice(1, config.maxSeries + 1)
       .map((label, index) => ({
         id: buildSeriesId(label || `serie-${index + 1}`, index),
-        label: label || `Serie ${index + 1}`,
+        label: label || UI_TEXT.seriesName({ index: index + 1 }),
         color:
           currentSeriesConfig[index]?.color ||
           config.defaultSeries[index]?.color ||
@@ -1809,7 +2183,9 @@ function renderBarChart({ title, subtitle, source, rows, series }) {
       <text x="42" y="80" font-size="16" fill="${REPORT_COLORS.muted}">${escapeHtml(subtitle || "")}</text>
       <line x1="${chartLeft}" x2="${chartLeft}" y1="${chartTop - 10}" y2="${height - 64}" stroke="${REPORT_COLORS.grid}" />
       ${bars}
-      <text x="42" y="${height - 30}" font-size="13" fill="${REPORT_COLORS.muted}">Source: ${escapeHtml(source)}</text>
+      <text x="42" y="${height - 30}" font-size="13" fill="${REPORT_COLORS.muted}">${escapeHtml(
+        UI_TEXT.sourceLabel,
+      )}: ${escapeHtml(source)}</text>
     </svg>
   `;
 }
@@ -1875,7 +2251,9 @@ function renderColumnChart({ title, subtitle, source, rows, series }) {
       <line x1="${padding.left}" x2="${width - padding.right}" y1="${baselineY}" y2="${baselineY}" stroke="${REPORT_COLORS.text}" opacity="0.5" />
       <line x1="${padding.left}" x2="${padding.left}" y1="${padding.top}" y2="${height - padding.bottom}" stroke="${REPORT_COLORS.grid}" opacity="0.6" />
       ${bars}
-      <text x="42" y="${height - 24}" font-size="13" fill="${REPORT_COLORS.muted}">Source: ${escapeHtml(source)}</text>
+      <text x="42" y="${height - 24}" font-size="13" fill="${REPORT_COLORS.muted}">${escapeHtml(
+        UI_TEXT.sourceLabel,
+      )}: ${escapeHtml(source)}</text>
     </svg>
   `;
 }
@@ -1944,14 +2322,16 @@ function renderLineChart({ title, subtitle, source, rows, series }) {
       <path d="${path}" fill="none" stroke="${stroke}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
       ${labels}
       ${dots}
-      <text x="42" y="${height - 24}" font-size="13" fill="${REPORT_COLORS.muted}">Source: ${escapeHtml(source)}</text>
+      <text x="42" y="${height - 24}" font-size="13" fill="${REPORT_COLORS.muted}">${escapeHtml(
+        UI_TEXT.sourceLabel,
+      )}: ${escapeHtml(source)}</text>
     </svg>
   `;
 }
 
 function renderAnnualHeader({ title, subtitle, source, width }) {
   const subtitlePart = subtitle ? `${escapeHtml(subtitle)}  ` : "";
-  const sourcePart = source ? `SOURCE: ${escapeHtml(source)}` : "";
+  const sourcePart = source ? `${UI_TEXT.sourceUpper}: ${escapeHtml(source)}` : "";
 
   return `
     <text x="34" y="38" font-size="15" font-weight="700" fill="${REPORT_COLORS.text}">${escapeHtml(title)}</text>
@@ -1980,7 +2360,7 @@ function exportCurrentChartAsSvg() {
   const exportData = getCurrentSvgExportData();
 
   if (!exportData) {
-    window.alert("Impossible d'exporter: aucun SVG n'est disponible.");
+    window.alert(UI_TEXT.exportUnavailable);
     return;
   }
 
@@ -1994,7 +2374,7 @@ async function exportCurrentChartAsPng() {
   const exportData = getCurrentSvgExportData();
 
   if (!exportData) {
-    window.alert("Impossible d'exporter: aucun SVG n'est disponible.");
+    window.alert(UI_TEXT.exportUnavailable);
     return;
   }
 
@@ -2404,13 +2784,13 @@ function buildSeriesId(value, index) {
 }
 
 function formatDisplayNumber(value) {
-  return new Intl.NumberFormat("fr-CH", {
+  return new Intl.NumberFormat(getContentNumberLocale(), {
     maximumFractionDigits: Number.isInteger(value) ? 0 : 1,
   }).format(value);
 }
 
 function formatChartNumber(value) {
-  return new Intl.NumberFormat("fr-CH", {
+  return new Intl.NumberFormat(getContentNumberLocale(), {
     useGrouping: false,
     maximumFractionDigits: Number.isInteger(value) ? 0 : 1,
   }).format(value);
@@ -2436,14 +2816,14 @@ function escapeRegExp(value) {
 }
 
 function formatDateTime(value) {
-  return new Intl.DateTimeFormat("fr-CH", {
+  return new Intl.DateTimeFormat(getUiLocaleCode(), {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
 }
 
 function formatShortDateTime(value) {
-  return new Intl.DateTimeFormat("fr-CH", {
+  return new Intl.DateTimeFormat(getUiLocaleCode(), {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
@@ -2452,7 +2832,7 @@ function formatShortDateTime(value) {
 }
 
 function buildDefaultProjectName() {
-  return `Projet ${new Intl.DateTimeFormat("fr-CH", {
+  return `${UI_TEXT.projectPrefix} ${new Intl.DateTimeFormat(getUiLocaleCode(), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -2465,14 +2845,30 @@ function buildForkProjectName(value) {
   const cleanValue = String(value ?? "").trim();
 
   if (!cleanValue) {
-    return "Nouveau projet";
+    return UI_TEXT.newProjectFallback;
   }
 
-  if (/\bcopie\b/i.test(cleanValue)) {
+  if (UI_TEXT.copyWordPattern.test(cleanValue)) {
     return cleanValue;
   }
 
-  return `${cleanValue} copie`;
+  return `${cleanValue} ${UI_TEXT.copySuffix}`;
+}
+
+function getContentNumberLocale() {
+  const selectedLocale = fields.locale?.value || UI_LANGUAGE;
+  const locales = {
+    fr: "fr-CH",
+    de: "de-CH",
+    it: "it-CH",
+    en: "en-CH",
+  };
+
+  return locales[selectedLocale] || "fr-CH";
+}
+
+function getUiLocaleCode() {
+  return UI_LANGUAGE === "de" ? "de-CH" : "fr-CH";
 }
 
 function buildEntityId(prefix) {
