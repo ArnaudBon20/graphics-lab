@@ -295,6 +295,11 @@ document.querySelector("#new-project").addEventListener("click", () => {
   render({ syncAll: true });
 });
 
+document.querySelector("#fork-project").addEventListener("click", () => {
+  createNewProjectFromCurrentState();
+  render({ syncAll: true });
+});
+
 document.querySelector("#reset-form").addEventListener("click", () => {
   applySession({
     projectId: null,
@@ -336,6 +341,7 @@ document.querySelector("#export-png").addEventListener("click", async () => {
 projectHistory.addEventListener("click", (event) => {
   const projectButton = event.target.closest("[data-load-project]");
   const versionButton = event.target.closest("[data-load-version]");
+  const deleteVersionButton = event.target.closest("[data-delete-version]");
 
   if (projectButton) {
     loadProject(projectButton.dataset.loadProject);
@@ -346,6 +352,14 @@ projectHistory.addEventListener("click", (event) => {
     const [projectId, versionId] = (versionButton.dataset.loadVersion || "").split(":");
     if (projectId && versionId) {
       loadProjectVersion(projectId, versionId);
+    }
+    return;
+  }
+
+  if (deleteVersionButton) {
+    const [projectId, versionId] = (deleteVersionButton.dataset.deleteVersion || "").split(":");
+    if (projectId && versionId) {
+      deleteProjectVersion(projectId, versionId);
     }
   }
 });
@@ -1079,13 +1093,23 @@ function renderProjectLibrary() {
           const label = index === 0 ? "Derniere" : formatShortDateTime(version.savedAt);
 
           return `
-            <button
-              type="button"
-              class="version-chip ${isCurrent ? "current" : ""}"
-              data-load-version="${project.id}:${version.id}"
-            >
-              ${escapeHtml(label)}
-            </button>
+            <div class="version-item">
+              <button
+                type="button"
+                class="version-chip ${isCurrent ? "current" : ""}"
+                data-load-version="${project.id}:${version.id}"
+              >
+                ${escapeHtml(label)}
+              </button>
+              <button
+                type="button"
+                class="version-delete"
+                aria-label="Supprimer la version ${escapeAttribute(formatDateTime(version.savedAt))}"
+                data-delete-version="${project.id}:${version.id}"
+              >
+                ×
+              </button>
+            </div>
           `;
         })
         .join("");
@@ -1159,6 +1183,18 @@ function saveProjectVersion() {
   persistSession();
 }
 
+function createNewProjectFromCurrentState() {
+  const baseName =
+    fields.projectName.value.trim() ||
+    fields.title.value.trim() ||
+    buildDefaultProjectName();
+
+  currentProjectId = null;
+  currentVersionId = null;
+  fields.projectName.value = buildForkProjectName(baseName);
+  persistSession();
+}
+
 function loadProject(projectId) {
   const project = loadProjects().find((item) => item.id === projectId);
 
@@ -1184,6 +1220,65 @@ function loadProjectVersion(projectId, versionId) {
     state: version.snapshot,
   });
   render({ syncAll: true });
+}
+
+function deleteProjectVersion(projectId, versionId) {
+  const projects = loadProjects();
+  const projectIndex = projects.findIndex((item) => item.id === projectId);
+
+  if (projectIndex < 0) {
+    return;
+  }
+
+  const project = projects[projectIndex];
+  const version = project.versions.find((item) => item.id === versionId);
+
+  if (!version) {
+    return;
+  }
+
+  const shouldDelete = window.confirm(
+    `Supprimer la version du ${formatDateTime(version.savedAt)} ?`,
+  );
+
+  if (!shouldDelete) {
+    return;
+  }
+
+  project.versions = project.versions.filter((item) => item.id !== versionId);
+
+  if (project.versions.length === 0) {
+    projects.splice(projectIndex, 1);
+
+    if (currentProjectId === projectId) {
+      applySession({
+        projectId: null,
+        projectName: "",
+        currentVersionId: null,
+        state: createBlankState(currentChartType),
+      });
+    }
+
+    saveProjects(projects);
+    render({ syncAll: true });
+    return;
+  }
+
+  project.updatedAt = project.versions[0].savedAt;
+  saveProjects(projects);
+
+  if (currentProjectId === projectId && currentVersionId === versionId) {
+    applySession({
+      projectId,
+      projectName: project.name,
+      currentVersionId: project.versions[0].id,
+      state: project.versions[0].snapshot,
+    });
+    render({ syncAll: true });
+    return;
+  }
+
+  render();
 }
 
 function loadProjects() {
@@ -2364,6 +2459,20 @@ function buildDefaultProjectName() {
   })
     .format(new Date())
     .replaceAll(".", "-")}`;
+}
+
+function buildForkProjectName(value) {
+  const cleanValue = String(value ?? "").trim();
+
+  if (!cleanValue) {
+    return "Nouveau projet";
+  }
+
+  if (/\bcopie\b/i.test(cleanValue)) {
+    return cleanValue;
+  }
+
+  return `${cleanValue} copie`;
 }
 
 function buildEntityId(prefix) {

@@ -48,6 +48,8 @@ Puis ouvrir [http://localhost:4173](http://localhost:4173).
 
 - Le bouton `Sauver une version` cree une nouvelle version du projet dans `localStorage`.
 - La zone `Projet` affiche les projets sauves dans ce navigateur et permet de recharger la derniere version ou une version precise.
+- Chaque version peut aussi etre supprimee individuellement depuis l'historique.
+- Le bouton `Nouveau depuis l'actuel` permet de repartir du travail en cours pour creer un autre projet, sans ecraser le projet charge.
 - Le brouillon en cours est aussi retenu automatiquement dans la session locale du navigateur.
 
 ## Export Word
