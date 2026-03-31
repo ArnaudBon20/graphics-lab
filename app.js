@@ -259,6 +259,10 @@ let currentChartType = DEFAULT_CHART_TYPE;
 let seriesConfig = [];
 let dataRows = [];
 
+function getChartConfig(chartType) {
+  return CHART_CONFIGS[chartType] || CHART_CONFIGS[DEFAULT_CHART_TYPE];
+}
+
 document.querySelector("#load-sample").addEventListener("click", () => {
   applyState(getSampleState(currentChartType));
   render({ syncAll: true });
