@@ -107,6 +107,16 @@ textarea {
   color: var(--muted);
 }
 
+.lede-single-line {
+  max-width: none;
+}
+
+@media (min-width: 761px) {
+  .lede-single-line {
+    white-space: nowrap;
+  }
+}
+
 .workspace {
   display: grid;
   grid-template-columns: 1fr;
