@@ -90,21 +90,15 @@ document.querySelector("#copy-config").addEventListener("click", async () => {
 });
 
 document.querySelector("#export-svg").addEventListener("click", () => {
-  const svg = preview.querySelector("svg");
+  exportCurrentChartAsSvg();
+});
 
-  if (!svg) {
-    window.alert("Impossible d'exporter: aucun SVG n'est disponible.");
-    return;
+document.querySelector("#export-png").addEventListener("click", async () => {
+  try {
+    await exportCurrentChartAsPng();
+  } catch (error) {
+    window.alert("Impossible d'exporter le PNG pour le moment.");
   }
-
-  const blob = new Blob([svg.outerHTML], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  const safeSlug = slugify(fields.title.value || "cdf-graphic");
-  link.href = url;
-  link.download = `${safeSlug}.svg`;
-  link.click();
-  URL.revokeObjectURL(url);
 });
 
 document.querySelector("#add-row").addEventListener("click", () => {
@@ -272,7 +266,7 @@ function buildPayload() {
     },
     presentation: {
       template: state.chartType,
-      exportTargets: ["web", "svg"],
+      exportTargets: ["web", "svg", "png"],
     },
     data: parsed.rows,
   };
@@ -561,6 +555,119 @@ function renderSvgChart({ title, subtitle, source, chartType, rows }) {
   return chartType === "line"
     ? renderLineChart({ title, subtitle, source, rows })
     : renderBarChart({ title, subtitle, source, rows });
+}
+
+function exportCurrentChartAsSvg() {
+  const exportData = getCurrentSvgExportData();
+
+  if (!exportData) {
+    window.alert("Impossible d'exporter: aucun SVG n'est disponible.");
+    return;
+  }
+
+  downloadBlob(
+    new Blob([exportData.markup], { type: "image/svg+xml;charset=utf-8" }),
+    `${buildExportSlug()}.svg`,
+  );
+}
+
+async function exportCurrentChartAsPng() {
+  const exportData = getCurrentSvgExportData();
+
+  if (!exportData) {
+    window.alert("Impossible d'exporter: aucun SVG n'est disponible.");
+    return;
+  }
+
+  const svgBlob = new Blob([exportData.markup], { type: "image/svg+xml;charset=utf-8" });
+  const svgUrl = URL.createObjectURL(svgBlob);
+
+  try {
+    const image = await loadImage(svgUrl);
+    const scale = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(Math.round(exportData.width * scale), 1);
+    canvas.height = Math.max(Math.round(exportData.height * scale), 1);
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Canvas context unavailable");
+    }
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.scale(scale, scale);
+    context.drawImage(image, 0, 0, exportData.width, exportData.height);
+
+    const pngBlob = await canvasToBlob(canvas);
+    downloadBlob(pngBlob, `${buildExportSlug()}.png`);
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
+}
+
+function getCurrentSvgExportData() {
+  const svg = preview.querySelector("svg");
+
+  if (!svg) {
+    return null;
+  }
+
+  const viewBox = svg.viewBox?.baseVal;
+  const width = viewBox?.width || svg.width?.baseVal?.value || svg.getBoundingClientRect().width || 860;
+  const height =
+    viewBox?.height || svg.height?.baseVal?.value || svg.getBoundingClientRect().height || 500;
+
+  let markup = svg.outerHTML;
+
+  if (!markup.includes('xmlns="http://www.w3.org/2000/svg"')) {
+    markup = markup.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+  }
+
+  if (!markup.includes('xmlns:xlink="http://www.w3.org/1999/xlink"')) {
+    markup = markup.replace(
+      "<svg",
+      '<svg xmlns:xlink="http://www.w3.org/1999/xlink"',
+    );
+  }
+
+  return { markup, width, height };
+}
+
+function buildExportSlug() {
+  return slugify(fields.title.value || "cdf-graphic");
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Image loading failed"));
+    image.src = url;
+  });
+}
+
+function canvasToBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+        return;
+      }
+
+      reject(new Error("Canvas toBlob failed"));
+    }, "image/png");
+  });
 }
 
 function renderBarChart({ title, subtitle, source, rows }) {

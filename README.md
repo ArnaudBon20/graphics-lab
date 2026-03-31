@@ -10,6 +10,7 @@ Prototype front-only pour tester une logique de creation, verification et export
 - checks de base orientes institutionnels
 - preview immediate
 - export SVG
+- export PNG
 - sauvegarde locale dans le navigateur
 - palette visuelle alignee sur des couleurs relevees sur efk.admin.ch
 
