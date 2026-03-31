@@ -1,4 +1,4 @@
-# CDF Graphics Lab
+# Graphics Lab
 
 Prototype front-only pour tester une logique de creation, verification et export de graphiques inspiree du projet Q, mais dans une forme beaucoup plus legere.
 
@@ -7,6 +7,8 @@ Prototype front-only pour tester une logique de creation, verification et export
 - edition locale d'un graphique simple
 - saisie directe des donnees dans un tableau
 - import CSV pour remplir rapidement le tableau
+- configuration de series multiples
+- templates proches du rapport annuel pour colonnes empilees et colonnes positives / negatives
 - graphiques en barres horizontales, verticales et courbe
 - checks de base orientes institutionnels
 - preview immediate
