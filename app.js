@@ -97,6 +97,7 @@ document.querySelector("#export-png").addEventListener("click", async () => {
   try {
     await exportCurrentChartAsPng();
   } catch (error) {
+    console.error(error);
     window.alert("Impossible d'exporter le PNG pour le moment.");
   }
 });
@@ -598,32 +599,25 @@ async function exportCurrentChartAsPng() {
     return;
   }
 
-  const svgBlob = new Blob([exportData.markup], { type: "image/svg+xml;charset=utf-8" });
-  const svgUrl = URL.createObjectURL(svgBlob);
+  const image = await loadImage(buildSvgDataUrl(exportData.markup));
+  const scale = 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(Math.round(exportData.width * scale), 1);
+  canvas.height = Math.max(Math.round(exportData.height * scale), 1);
 
-  try {
-    const image = await loadImage(svgUrl);
-    const scale = 2;
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(Math.round(exportData.width * scale), 1);
-    canvas.height = Math.max(Math.round(exportData.height * scale), 1);
+  const context = canvas.getContext("2d");
 
-    const context = canvas.getContext("2d");
-
-    if (!context) {
-      throw new Error("Canvas context unavailable");
-    }
-
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.scale(scale, scale);
-    context.drawImage(image, 0, 0, exportData.width, exportData.height);
-
-    const pngBlob = await canvasToBlob(canvas);
-    downloadBlob(pngBlob, `${buildExportSlug()}.png`);
-  } finally {
-    URL.revokeObjectURL(svgUrl);
+  if (!context) {
+    throw new Error("Canvas context unavailable");
   }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.setTransform(scale, 0, 0, scale, 0, 0);
+  context.drawImage(image, 0, 0, exportData.width, exportData.height);
+
+  const pngBlob = await canvasToBlob(canvas);
+  downloadBlob(pngBlob, `${buildExportSlug()}.png`);
 }
 
 function getCurrentSvgExportData() {
@@ -638,18 +632,7 @@ function getCurrentSvgExportData() {
   const height =
     viewBox?.height || svg.height?.baseVal?.value || svg.getBoundingClientRect().height || 500;
 
-  let markup = svg.outerHTML;
-
-  if (!markup.includes('xmlns="http://www.w3.org/2000/svg"')) {
-    markup = markup.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
-  }
-
-  if (!markup.includes('xmlns:xlink="http://www.w3.org/1999/xlink"')) {
-    markup = markup.replace(
-      "<svg",
-      '<svg xmlns:xlink="http://www.w3.org/1999/xlink"',
-    );
-  }
+  const markup = buildNormalizedSvgMarkup(svg, width, height);
 
   return { markup, width, height };
 }
@@ -660,11 +643,11 @@ function buildExportSlug() {
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  downloadUrl(url, filename);
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
 }
 
 function loadImage(url) {
@@ -678,15 +661,67 @@ function loadImage(url) {
 
 function canvasToBlob(canvas) {
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) {
-        resolve(blob);
-        return;
-      }
+    if (typeof canvas.toBlob === "function") {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+          return;
+        }
 
-      reject(new Error("Canvas toBlob failed"));
-    }, "image/png");
+        reject(new Error("Canvas toBlob failed"));
+      }, "image/png");
+      return;
+    }
+
+    try {
+      const dataUrl = canvas.toDataURL("image/png");
+      resolve(dataUrlToBlob(dataUrl));
+    } catch (error) {
+      reject(new Error("Canvas export failed"));
+    }
   });
+}
+
+function buildNormalizedSvgMarkup(svg, width, height) {
+  const clone = svg.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+  clone.setAttribute("width", String(width));
+  clone.setAttribute("height", String(height));
+
+  if (!clone.getAttribute("viewBox")) {
+    clone.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n${clone.outerHTML}`;
+}
+
+function buildSvgDataUrl(markup) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
+}
+
+function downloadUrl(url, filename) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.rel = "noopener";
+  document.body.append(link);
+  link.click();
+  link.remove();
+}
+
+function dataUrlToBlob(dataUrl) {
+  const [meta, content] = dataUrl.split(",");
+  const mimeMatch = meta.match(/data:(.*?);base64/);
+  const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+  const binary = atob(content);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return new Blob([bytes], { type: mimeType });
 }
 
 function renderBarChart({ title, subtitle, source, rows }) {
