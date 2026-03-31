@@ -446,6 +446,10 @@ function runChecks(state, parsed) {
     warnings.push("En barres verticales, certains libellés sont longs et risquent de se chevaucher.");
   }
 
+  if (state.chartType === "column" && labels.length > 8) {
+    warnings.push("En colonnes verticales, plus de 8 catégories peuvent vite devenir difficiles à lire.");
+  }
+
   return { errors, warnings };
 }
 
@@ -726,8 +730,8 @@ function renderBarChart({ title, subtitle, source, rows }) {
 
 function renderColumnChart({ title, subtitle, source, rows }) {
   const width = 860;
-  const height = 540;
-  const padding = { top: 126, right: 48, bottom: 138, left: 82 };
+  const height = 560;
+  const padding = { top: 126, right: 48, bottom: 158, left: 82 };
   const maxValue = Math.max(...rows.map((row) => row.value), 0);
   const minValue = Math.min(...rows.map((row) => row.value), 0);
   const range = Math.max(maxValue - minValue, 1);
@@ -757,7 +761,16 @@ function renderColumnChart({ title, subtitle, source, rows }) {
       const rectY = Math.min(y, baselineY);
       const rectHeight = Math.max(Math.abs(y - baselineY), 2);
       const valueLabelY = row.value >= 0 ? rectY - 10 : rectY + rectHeight + 18;
-      const labelY = height - 56;
+      const labelY = height - 82;
+      const labelText = renderMultilineText({
+        lines: wrapLabel(row.label, 14),
+        x: centerX,
+        y: labelY,
+        fontSize: 12,
+        lineHeight: 15,
+        fill: "#32373c",
+        opacity: "0.8",
+      });
 
       return `
         <rect
@@ -766,20 +779,12 @@ function renderColumnChart({ title, subtitle, source, rows }) {
           width="${barWidth}"
           height="${rectHeight}"
           rx="10"
-          fill="#ea5a4f"
+          fill="#003399"
         />
         <text x="${centerX}" y="${valueLabelY}" text-anchor="middle" font-size="13" fill="#32373c">${formatNumber(
           row.value,
         )}</text>
-        <text
-          x="${centerX}"
-          y="${labelY}"
-          text-anchor="end"
-          font-size="12"
-          fill="#32373c"
-          opacity="0.8"
-          transform="rotate(-32 ${centerX} ${labelY})"
-        >${escapeHtml(row.label)}</text>
+        ${labelText}
       `;
     })
     .join("");
@@ -791,6 +796,7 @@ function renderColumnChart({ title, subtitle, source, rows }) {
       <text x="42" y="80" font-size="16" fill="#32373c" opacity="0.76">${escapeHtml(subtitle || "")}</text>
       ${grid}
       <line x1="${padding.left}" x2="${width - padding.right}" y1="${baselineY}" y2="${baselineY}" stroke="#32373c" opacity="0.6" />
+      <line x1="${padding.left}" x2="${padding.left}" y1="${padding.top}" y2="${height - padding.bottom}" stroke="#b8b8b8" opacity="0.5" />
       ${bars}
       <text x="42" y="${height - 24}" font-size="13" fill="#32373c" opacity="0.76">Source: ${escapeHtml(source)}</text>
     </svg>
@@ -884,6 +890,52 @@ function padRows(rows) {
 
 function createEmptyRow() {
   return { label: "", value: "" };
+}
+
+function wrapLabel(label, maxLength) {
+  const words = String(label ?? "").trim().split(/\s+/).filter(Boolean);
+
+  if (words.length === 0) {
+    return [""];
+  }
+
+  const lines = [];
+  let currentLine = "";
+
+  words.forEach((word) => {
+    const candidate = currentLine ? `${currentLine} ${word}` : word;
+
+    if (candidate.length <= maxLength || currentLine === "") {
+      currentLine = candidate;
+      return;
+    }
+
+    lines.push(currentLine);
+    currentLine = word;
+  });
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.slice(0, 3);
+}
+
+function renderMultilineText({ lines, x, y, fontSize, lineHeight, fill, opacity = "1" }) {
+  return `
+    <text
+      x="${x}"
+      y="${y}"
+      text-anchor="middle"
+      font-size="${fontSize}"
+      fill="${fill}"
+      opacity="${opacity}"
+    >
+      ${lines
+        .map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : lineHeight}">${escapeHtml(line)}</tspan>`)
+        .join("")}
+    </text>
+  `;
 }
 
 function serializeRowsToCsv(rows) {
