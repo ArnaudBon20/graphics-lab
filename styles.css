@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=League+Spartan:wght@100..900&display=swap");
+
 :root {
   --bg: #ece9e4;
   --panel: #ffffff;
@@ -19,7 +21,7 @@
   --radius-xl: 24px;
   --radius-lg: 16px;
   --radius-sm: 12px;
-  --font-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-sans: "League Spartan", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "SFMono-Regular", "JetBrains Mono", monospace;
 }
 
@@ -31,6 +33,7 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: var(--font-sans);
+  font-weight: 300;
   color: var(--ink);
   background: linear-gradient(180deg, #f3f1ed 0%, #e7e3dd 100%);
 }

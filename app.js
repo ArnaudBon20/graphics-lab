@@ -16,7 +16,8 @@ const MIN_ROWS = 5;
 const MAX_SERIES = 4;
 const MAX_PROJECT_VERSIONS = 24;
 const WORD_EXPORT_WIDTH_CM = 15.9;
-const WORD_EXPORT_DPI = 96;
+const WORD_EXPORT_DPI = 300;
+const EXPORT_FONT_FAMILY = '"League Spartan", "Helvetica Neue", Arial, sans-serif';
 const CRC32_TABLE = createCrc32Table();
 const UI_LANGUAGE = (document.documentElement.lang || "fr").toLowerCase().startsWith("de")
   ? "de"
@@ -2061,7 +2062,9 @@ function renderAnnualStackedChart({ title, subtitle, source, rows, series }) {
     .join("");
 
   return `
-    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}">
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}" font-family="${escapeAttribute(
+      EXPORT_FONT_FAMILY,
+    )}" font-weight="300">
       <rect width="${width}" height="${height}" fill="${REPORT_COLORS.paper}" />
       ${renderAnnualHeader({ title, subtitle, source, width })}
       ${grid}
@@ -2138,7 +2141,9 @@ function renderAnnualBalanceChart({ title, subtitle, source, rows }) {
     .join("");
 
   return `
-    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}">
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}" font-family="${escapeAttribute(
+      EXPORT_FONT_FAMILY,
+    )}" font-weight="300">
       <rect width="${width}" height="${height}" fill="${REPORT_COLORS.paper}" />
       ${renderAnnualHeader({ title, subtitle, source, width })}
       ${grid}
@@ -2177,7 +2182,9 @@ function renderBarChart({ title, subtitle, source, rows, series }) {
     .join("");
 
   return `
-    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}">
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}" font-family="${escapeAttribute(
+      EXPORT_FONT_FAMILY,
+    )}" font-weight="300">
       <rect width="${width}" height="${height}" rx="28" fill="#ffffff" />
       <text x="42" y="52" font-size="28" font-weight="700" fill="${REPORT_COLORS.text}">${escapeHtml(title)}</text>
       <text x="42" y="80" font-size="16" fill="${REPORT_COLORS.muted}">${escapeHtml(subtitle || "")}</text>
@@ -2243,7 +2250,9 @@ function renderColumnChart({ title, subtitle, source, rows, series }) {
     .join("");
 
   return `
-    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}">
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}" font-family="${escapeAttribute(
+      EXPORT_FONT_FAMILY,
+    )}" font-weight="300">
       <rect width="${width}" height="${height}" rx="28" fill="#ffffff" />
       <text x="42" y="52" font-size="28" font-weight="700" fill="${REPORT_COLORS.text}">${escapeHtml(title)}</text>
       <text x="42" y="80" font-size="16" fill="${REPORT_COLORS.muted}">${escapeHtml(subtitle || "")}</text>
@@ -2314,7 +2323,9 @@ function renderLineChart({ title, subtitle, source, rows, series }) {
     .join("");
 
   return `
-    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}">
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}" font-family="${escapeAttribute(
+      EXPORT_FONT_FAMILY,
+    )}" font-weight="300">
       <rect width="${width}" height="${height}" rx="28" fill="#ffffff" />
       <text x="42" y="52" font-size="28" font-weight="700" fill="${REPORT_COLORS.text}">${escapeHtml(title)}</text>
       <text x="42" y="80" font-size="16" fill="${REPORT_COLORS.muted}">${escapeHtml(subtitle || "")}</text>
@@ -2377,6 +2388,8 @@ async function exportCurrentChartAsPng() {
     window.alert(UI_TEXT.exportUnavailable);
     return;
   }
+
+  await ensureExportFontsLoaded();
 
   const wordProfile = exportData.wordProfile;
   const image = await loadImage(buildSvgDataUrl(exportData.wordMarkup));
@@ -2501,12 +2514,34 @@ function buildNormalizedSvgMarkup(svg, width, height, options = {}) {
   clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
   clone.setAttribute("width", options.widthCm ? `${options.widthCm}cm` : String(width));
   clone.setAttribute("height", options.heightCm ? `${options.heightCm}cm` : String(height));
+  clone.setAttribute("font-family", EXPORT_FONT_FAMILY);
+  clone.setAttribute("font-weight", "300");
+  clone.setAttribute("text-rendering", "geometricPrecision");
+  clone.setAttribute("shape-rendering", "geometricPrecision");
 
   if (!clone.getAttribute("viewBox")) {
     clone.setAttribute("viewBox", `0 0 ${width} ${height}`);
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n${clone.outerHTML}`;
+}
+
+async function ensureExportFontsLoaded() {
+  if (!document.fonts?.load) {
+    return;
+  }
+
+  try {
+    await Promise.all([
+      document.fonts.load('300 16px "League Spartan"'),
+      document.fonts.load('400 16px "League Spartan"'),
+      document.fonts.load('600 16px "League Spartan"'),
+      document.fonts.load('700 16px "League Spartan"'),
+      document.fonts.ready,
+    ]);
+  } catch (error) {
+    // The export can continue with the fallback font if the remote font is unavailable.
+  }
 }
 
 function buildSvgDataUrl(markup) {
