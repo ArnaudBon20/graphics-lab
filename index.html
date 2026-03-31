@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CDF Graphics Lab</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Prototype interne</p>
+          <h1>CDF Graphics Lab</h1>
+          <p class="lede">
+            Une base légère pour tester une logique "à la Q" sans backend: saisie,
+            contrôles, aperçu et export.
+          </p>
+        </div>
+        <div class="hero-card">
+          <p class="card-label">Cible</p>
+          <p class="card-value">Contrôle fédéral des finances / EFK</p>
+          <p class="card-note">
+            Prototype front-only, compatible avec une future publication statique.
+          </p>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel panel-form">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker">Edition</p>
+              <h2>Contenu et données</h2>
+            </div>
+            <div class="toolbar">
+              <button id="load-sample" class="ghost">Charger un exemple</button>
+              <button id="save-draft" class="ghost">Sauver localement</button>
+            </div>
+          </div>
+
+          <form id="editor-form" class="editor-grid">
+            <label>
+              Titre
+              <input id="title" name="title" type="text" />
+            </label>
+
+            <label>
+              Sous-titre
+              <input id="subtitle" name="subtitle" type="text" />
+            </label>
+
+            <label>
+              Type de graphique
+              <select id="chart-type" name="chartType">
+                <option value="bar">Barres horizontales</option>
+                <option value="line">Courbe</option>
+              </select>
+            </label>
+
+            <label>
+              Langue
+              <select id="locale" name="locale">
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+                <option value="it">Italiano</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+
+            <label>
+              Source
+              <input id="source" name="source" type="text" />
+            </label>
+
+            <label>
+              Service responsable
+              <input id="owner" name="owner" type="text" />
+            </label>
+
+            <label class="full">
+              Note méthodologique
+              <textarea id="methodology" name="methodology" rows="3"></textarea>
+            </label>
+
+            <label class="full">
+              Texte alternatif
+              <textarea id="alt-text" name="altText" rows="3"></textarea>
+            </label>
+
+            <label class="full">
+              Données CSV
+              <span class="hint">
+                Deux colonnes minimum. Exemple: <code>label,value</code>
+              </span>
+              <textarea id="csv-input" name="csvInput" rows="10"></textarea>
+            </label>
+          </form>
+
+          <div class="footer-actions">
+            <button id="reset-form" class="ghost">Réinitialiser</button>
+            <button id="copy-config" class="ghost">Copier le JSON</button>
+            <button id="export-svg">Exporter en SVG</button>
+          </div>
+        </section>
+
+        <section class="panel panel-preview">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker">Validation</p>
+              <h2>Checks et aperçu</h2>
+            </div>
+            <div id="quality-chip" class="quality-chip">Brouillon</div>
+          </div>
+
+          <div class="checks-grid">
+            <article class="status-box status-box-critical">
+              <h3>Blocages</h3>
+              <ul id="errors-list" class="status-list"></ul>
+            </article>
+            <article class="status-box status-box-warning">
+              <h3>Warnings</h3>
+              <ul id="warnings-list" class="status-list"></ul>
+            </article>
+          </div>
+
+          <article class="preview-card">
+            <div class="preview-head">
+              <div>
+                <p class="section-kicker">Preview</p>
+                <h3>Rendu principal</h3>
+              </div>
+              <p id="preview-meta" class="preview-meta"></p>
+            </div>
+            <div id="chart-preview" class="chart-preview"></div>
+          </article>
+
+          <article class="payload-card">
+            <div class="preview-head">
+              <div>
+                <p class="section-kicker">Payload</p>
+                <h3>Configuration exportable</h3>
+              </div>
+            </div>
+            <pre id="payload-preview"></pre>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
