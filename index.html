@@ -30,8 +30,8 @@
         <section class="panel panel-form">
           <div class="panel-head">
             <div>
-              <p class="section-kicker">Edition</p>
-              <h2>Contenu et données</h2>
+              <p class="section-kicker">Données</p>
+              <h2>Contenu et saisie</h2>
             </div>
             <div class="toolbar">
               <button id="load-sample" type="button" class="ghost">Charger un exemple</button>
@@ -153,16 +153,13 @@
 
           <div class="footer-actions">
             <button id="reset-form" type="button" class="ghost">Réinitialiser</button>
-            <button id="copy-config" type="button" class="ghost">Copier le JSON</button>
-            <button id="export-svg" type="button">Exporter en SVG</button>
-            <button id="export-png" type="button">Exporter en PNG</button>
           </div>
         </section>
 
         <section class="panel panel-preview">
           <div class="panel-head">
             <div>
-              <p class="section-kicker">Validation</p>
+              <p class="section-kicker">Graphique</p>
               <h2>Checks et aperçu</h2>
             </div>
             <div id="quality-chip" class="quality-chip">Brouillon</div>
@@ -190,13 +187,24 @@
             <div id="chart-preview" class="chart-preview"></div>
           </article>
 
-          <article class="payload-card">
-            <div class="preview-head">
-              <div>
-                <p class="section-kicker">Payload</p>
-                <h3>Configuration exportable</h3>
-              </div>
+          <div class="footer-actions">
+            <button id="export-svg" type="button">Exporter en SVG</button>
+            <button id="export-png" type="button">Exporter en PNG</button>
+          </div>
+        </section>
+
+        <section class="panel panel-code">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker">Code</p>
+              <h2>Configuration exportable</h2>
             </div>
+            <div class="toolbar">
+              <button id="copy-config" type="button" class="ghost">Copier le JSON</button>
+            </div>
+          </div>
+
+          <article class="payload-card">
             <pre id="payload-preview"></pre>
           </article>
         </section>
