@@ -7,6 +7,7 @@ Prototype front-only pour tester une logique de creation, verification et export
 - edition locale d'un graphique simple
 - saisie directe des donnees dans un tableau
 - import CSV pour remplir rapidement le tableau
+- graphiques en barres horizontales, verticales et courbe
 - checks de base orientes institutionnels
 - preview immediate
 - export SVG

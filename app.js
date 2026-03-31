@@ -384,7 +384,12 @@ function renderQuality(checks) {
 }
 
 function renderPreviewMeta(rowCount, locale, chartType) {
-  const chartLabel = chartType === "line" ? "courbe" : "barres";
+  const labelsByChart = {
+    bar: "barres horizontales",
+    column: "barres verticales",
+    line: "courbe",
+  };
+  const chartLabel = labelsByChart[chartType] || "graphique";
   previewMeta.textContent = `${rowCount} lignes • ${locale.toUpperCase()} • ${chartLabel}`;
 }
 
@@ -435,6 +440,10 @@ function runChecks(state, parsed) {
 
   if (labels.some((label) => label.length > 32)) {
     warnings.push("Certaines étiquettes sont longues et peuvent casser la mise en page.");
+  }
+
+  if (state.chartType === "column" && labels.some((label) => label.length > 18)) {
+    warnings.push("En barres verticales, certains libellés sont longs et risquent de se chevaucher.");
   }
 
   return { errors, warnings };
@@ -552,9 +561,15 @@ function splitDelimitedLine(line, delimiter) {
 }
 
 function renderSvgChart({ title, subtitle, source, chartType, rows }) {
-  return chartType === "line"
-    ? renderLineChart({ title, subtitle, source, rows })
-    : renderBarChart({ title, subtitle, source, rows });
+  if (chartType === "line") {
+    return renderLineChart({ title, subtitle, source, rows });
+  }
+
+  if (chartType === "column") {
+    return renderColumnChart({ title, subtitle, source, rows });
+  }
+
+  return renderBarChart({ title, subtitle, source, rows });
 }
 
 function exportCurrentChartAsSvg() {
@@ -705,6 +720,79 @@ function renderBarChart({ title, subtitle, source, rows }) {
       <line x1="${chartLeft}" x2="${chartLeft}" y1="${chartTop - 10}" y2="${height - 64}" stroke="#b8b8b8" />
       ${bars}
       <text x="42" y="${height - 30}" font-size="13" fill="#32373c" opacity="0.76">Source: ${escapeHtml(source)}</text>
+    </svg>
+  `;
+}
+
+function renderColumnChart({ title, subtitle, source, rows }) {
+  const width = 860;
+  const height = 540;
+  const padding = { top: 126, right: 48, bottom: 138, left: 82 };
+  const maxValue = Math.max(...rows.map((row) => row.value), 0);
+  const minValue = Math.min(...rows.map((row) => row.value), 0);
+  const range = Math.max(maxValue - minValue, 1);
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+  const slotWidth = chartWidth / Math.max(rows.length, 1);
+  const barWidth = Math.min(56, Math.max(22, slotWidth * 0.6));
+  const yForValue = (value) =>
+    padding.top + chartHeight - ((value - minValue) / range) * chartHeight;
+  const baselineY = yForValue(0);
+
+  const grid = Array.from({ length: 5 }, (_, index) => {
+    const value = maxValue - (index / 4) * range;
+    const y = yForValue(value);
+    return `
+      <line x1="${padding.left}" x2="${width - padding.right}" y1="${y}" y2="${y}" stroke="#b8b8b8" opacity="0.55" />
+      <text x="${padding.left - 12}" y="${y + 5}" text-anchor="end" font-size="13" fill="#32373c" opacity="0.76">${formatNumber(
+        value,
+      )}</text>
+    `;
+  }).join("");
+
+  const bars = rows
+    .map((row, index) => {
+      const centerX = padding.left + index * slotWidth + slotWidth / 2;
+      const y = yForValue(row.value);
+      const rectY = Math.min(y, baselineY);
+      const rectHeight = Math.max(Math.abs(y - baselineY), 2);
+      const valueLabelY = row.value >= 0 ? rectY - 10 : rectY + rectHeight + 18;
+      const labelY = height - 56;
+
+      return `
+        <rect
+          x="${centerX - barWidth / 2}"
+          y="${rectY}"
+          width="${barWidth}"
+          height="${rectHeight}"
+          rx="10"
+          fill="#ea5a4f"
+        />
+        <text x="${centerX}" y="${valueLabelY}" text-anchor="middle" font-size="13" fill="#32373c">${formatNumber(
+          row.value,
+        )}</text>
+        <text
+          x="${centerX}"
+          y="${labelY}"
+          text-anchor="end"
+          font-size="12"
+          fill="#32373c"
+          opacity="0.8"
+          transform="rotate(-32 ${centerX} ${labelY})"
+        >${escapeHtml(row.label)}</text>
+      `;
+    })
+    .join("");
+
+  return `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeAttribute(title)}">
+      <rect width="${width}" height="${height}" rx="28" fill="#ffffff" />
+      <text x="42" y="52" font-size="28" font-weight="700" fill="#32373c">${escapeHtml(title)}</text>
+      <text x="42" y="80" font-size="16" fill="#32373c" opacity="0.76">${escapeHtml(subtitle || "")}</text>
+      ${grid}
+      <line x1="${padding.left}" x2="${width - padding.right}" y1="${baselineY}" y2="${baselineY}" stroke="#32373c" opacity="0.6" />
+      ${bars}
+      <text x="42" y="${height - 24}" font-size="13" fill="#32373c" opacity="0.76">Source: ${escapeHtml(source)}</text>
     </svg>
   `;
 }
