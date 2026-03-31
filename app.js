@@ -209,7 +209,7 @@ function buildChartConfigs(language) {
   if (language === "de") {
     return {
       "annual-stacked": {
-        label: "Gestapelte Saeulen (Jahresbericht)",
+        label: "Gestapelte Saeulen",
         previewLabel: "gestapelte saeulen",
         seriesMode: "multi",
         minSeries: 2,
@@ -237,7 +237,7 @@ function buildChartConfigs(language) {
         ],
       },
       "annual-balance": {
-        label: "Saeulen +/- (Jahresbericht)",
+        label: "Saeulen +/-",
         previewLabel: "positive / negative saeulen",
         seriesMode: "single",
         minSeries: 1,
@@ -313,7 +313,7 @@ function buildChartConfigs(language) {
 
   return {
     "annual-stacked": {
-      label: "Colonnes empilees (rapport annuel)",
+      label: "Colonnes empilees",
       previewLabel: "colonnes empilees",
       seriesMode: "multi",
       minSeries: 2,
@@ -341,7 +341,7 @@ function buildChartConfigs(language) {
       ],
     },
     "annual-balance": {
-      label: "Colonnes +/- (rapport annuel)",
+      label: "Colonnes +/-",
       previewLabel: "colonnes positives / negatives",
       seriesMode: "single",
       minSeries: 1,
