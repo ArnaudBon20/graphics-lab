@@ -7,6 +7,12 @@ Ce dossier est **separe** du projet principal et sert uniquement a apprendre l'a
 - `tool-basic` (1 outil de rendu)
 - `Q-editor` (image officielle `nzzonline/q-editor`)
 
+Le tool inclut maintenant une premiere integration "style CDF":
+- types: `stacked-columns`, `plus-minus-columns`, `bars`
+- palette et style visuel CDF (bleu/rouge/gris)
+- police configurable (defaut `Frutiger, Arial, sans-serif`)
+- export PNG via bouton dans Q-editor
+
 ## Demarrage rapide
 
 1. Installer Docker Desktop (ou Docker Engine + Compose).
@@ -28,7 +34,8 @@ Ce dossier est **separe** du projet principal et sert uniquement a apprendre l'a
 - `q-server` stocke/charge les items dans `CouchDB`.
 - `q-server` demande au `tool-basic`:
   - `schema.json` pour l'editeur
-  - `rendering-info` pour le preview.
+  - `rendering-info` pour le preview
+  - `rendering-image.png` pour l'export PNG.
 
 Flux simplifie:
 
@@ -37,6 +44,7 @@ Flux simplifie:
 3. Liste des items via `/search`.
 4. Edition d'un item via `/tools/simple-bars/schema.json`.
 5. Preview via `/rendering-info/...` -> proxy vers `tool-basic`.
+6. Export PNG via target `export-png` -> blob `image/png`.
 
 ## Endpoints principaux du mini q-server
 
@@ -45,6 +53,7 @@ Flux simplifie:
 - Items: `/item`, `/item/:id`, `/search`
 - Stats: `/statistics/number-of-items`
 - Preview: `/rendering-info/:id/:target`, `/rendering-info/:target`
+- Export options: `/display-options-schema/:id/:target.json`
 - Tool proxy: `/tools/simple-bars/schema.json`
 
 ## Notes importantes

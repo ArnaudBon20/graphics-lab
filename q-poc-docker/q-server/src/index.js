@@ -122,33 +122,51 @@ const translationsByLang = {
 };
 
 const toolNamesByLang = {
-  fr: { [TOOL_NAME]: "Barres simples" },
-  de: { [TOOL_NAME]: "Einfache Balken" },
-  en: { [TOOL_NAME]: "Simple Bars" }
+  fr: { [TOOL_NAME]: "Modeles graphiques CDF" },
+  de: { [TOOL_NAME]: "CDF-Grafikvorlagen" },
+  en: { [TOOL_NAME]: "CDF Graphic Templates" }
 };
 
 const toolLocaleByLang = {
   fr: {
+    chartType: "Type de graphique",
     title: "Titre",
     subtitle: "Sous-titre",
+    source: "Source",
+    fontFamily: "Police",
+    positiveColor: "Couleur positive",
+    negativeColor: "Couleur negative",
     values: "Valeurs",
     label: "Libelle",
+    series: "Serie",
     value: "Valeur",
     color: "Couleur"
   },
   de: {
+    chartType: "Diagrammtyp",
     title: "Titel",
     subtitle: "Untertitel",
+    source: "Quelle",
+    fontFamily: "Schriftart",
+    positiveColor: "Positive Farbe",
+    negativeColor: "Negative Farbe",
     values: "Werte",
     label: "Bezeichnung",
+    series: "Serie",
     value: "Wert",
     color: "Farbe"
   },
   en: {
+    chartType: "Chart type",
     title: "Title",
     subtitle: "Subtitle",
+    source: "Source",
+    fontFamily: "Font family",
+    positiveColor: "Positive color",
+    negativeColor: "Negative color",
     values: "Values",
     label: "Label",
+    series: "Series",
     value: "Value",
     color: "Color"
   }
@@ -189,17 +207,36 @@ function requireAuth(req, res, next) {
 }
 
 async function ensureDatabase() {
-  try {
-    await nano.db.get(COUCH_DB);
-  } catch (error) {
-    if (error.statusCode === 404) {
-      await nano.db.create(COUCH_DB);
-    } else {
-      throw error;
+  const maxAttempts = 30;
+  const waitMs = 1000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await nano.db.get(COUCH_DB);
+      db = nano.db.use(COUCH_DB);
+      return;
+    } catch (error) {
+      if (error.statusCode === 404) {
+        await nano.db.create(COUCH_DB);
+        db = nano.db.use(COUCH_DB);
+        return;
+      }
+
+      const transientConnectionError =
+        error.code === "ECONNREFUSED" ||
+        String(error.message || "").includes("ECONNREFUSED");
+
+      if (!transientConnectionError || attempt === maxAttempts) {
+        throw error;
+      }
+
+      // eslint-disable-next-line no-console
+      console.log(
+        `waiting for CouchDB (${attempt}/${maxAttempts}) before retry...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
     }
   }
-
-  db = nano.db.use(COUCH_DB);
 }
 
 async function listAllDocs() {
@@ -223,14 +260,29 @@ async function ensureExampleItem() {
   const item = {
     _id: `sample-${Date.now()}`,
     title: "Nombre de cas traites",
-    subtitle: "POC Q - graphique barres",
+    subtitle: "POC Q - integration modeles CDF",
+    source: "SOURCE : CDF",
+    chartType: "stacked-columns",
+    fontFamily: "Frutiger, Arial, sans-serif",
+    positiveColor: "#E05B4F",
+    negativeColor: "#E05B4F",
     tool: TOOL_NAME,
     values: [
-      { label: "2020", value: 18, color: "#274f8a" },
-      { label: "2021", value: 31, color: "#274f8a" },
-      { label: "2022", value: 24, color: "#e05b4f" },
-      { label: "2023", value: 38, color: "#274f8a" },
-      { label: "2024", value: 41, color: "#e05b4f" }
+      { label: "2020", series: "Employes", value: 311, color: "#9FA3A7" },
+      { label: "2020", series: "Externes", value: 96, color: "#274F8A" },
+      { label: "2020", series: "Annonces", value: 77, color: "#E05B4F" },
+      { label: "2021", series: "Employes", value: 229, color: "#9FA3A7" },
+      { label: "2021", series: "Externes", value: 95, color: "#274F8A" },
+      { label: "2021", series: "Annonces", value: 78, color: "#E05B4F" },
+      { label: "2022", series: "Employes", value: 47, color: "#9FA3A7" },
+      { label: "2022", series: "Externes", value: 132, color: "#274F8A" },
+      { label: "2022", series: "Annonces", value: 100, color: "#E05B4F" },
+      { label: "2023", series: "Employes", value: 22, color: "#9FA3A7" },
+      { label: "2023", series: "Externes", value: 225, color: "#274F8A" },
+      { label: "2023", series: "Annonces", value: 125, color: "#E05B4F" },
+      { label: "2024", series: "Employes", value: 10, color: "#9FA3A7" },
+      { label: "2024", series: "Externes", value: 252, color: "#274F8A" },
+      { label: "2024", series: "Annonces", value: 113, color: "#E05B4F" }
     ],
     active: true,
     department: "CDF",
@@ -342,10 +394,28 @@ function buildEditorConfig() {
 }
 
 function buildTargets() {
+  const webTarget = {
+    key: "web",
+    label: "web",
+    context: {
+      background: { color: "#ffffff" }
+    },
+    preview: {
+      background: { color: "#ffffff" }
+    },
+    userExportable: false
+  };
+
+  const webTargetCloneForPreview = JSON.parse(JSON.stringify(webTarget));
+
   return [
+    webTarget,
     {
-      key: "web",
-      label: "web",
+      key: "export-png",
+      label: "export-png",
+      modalTitle: "Exporter PNG",
+      proceedText: "Telecharger",
+      cancelText: "Fermer",
       context: {
         background: { color: "#ffffff" }
       },
@@ -353,11 +423,17 @@ function buildTargets() {
         background: { color: "#ffffff" }
       },
       userExportable: {
-        buttonLabel: "Exporter HTML",
-        modalTitle: "Exporter",
-        proceedText: "Confirmer",
-        cancelText: "Annuler",
-        previewTarget: "web"
+        buttonLabel: "PNG",
+        onlyTools: [TOOL_NAME],
+        preview: {
+          target: "web"
+        },
+        previewTarget: webTargetCloneForPreview,
+        download: {
+          file: {
+            nameMaxLength: 120
+          }
+        }
       }
     }
   ];
@@ -416,6 +492,35 @@ async function fetchRenderingInfo({ item, target, toolRuntimeConfig }) {
   }
 
   return response.json();
+}
+
+async function fetchRenderingPng({ item, target, toolRuntimeConfig }) {
+  const response = await fetch(`${TOOL_BASE_URL}/rendering-image.png`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      item,
+      target,
+      toolRuntimeConfig
+    })
+  });
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    throw new Error(
+      `Tool png rendering failed (${response.status}): ${
+        responseText || "no body"
+      }`
+    );
+  }
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return {
+    type: response.headers.get("content-type") || "image/png",
+    buffer
+  };
 }
 
 app.get("/health", (req, res) => {
@@ -696,6 +801,28 @@ app.get("/statistics/number-of-items/:fromTs?", requireAuth, async (req, res, ne
 });
 
 app.get("/display-options-schema/:id/:target.json", requireAuth, (req, res) => {
+  if (req.params.target === "export-png") {
+    res.json({
+      title: "PNG options",
+      type: "object",
+      properties: {
+        width: {
+          type: "integer",
+          title: "Largeur PNG",
+          minimum: 800,
+          maximum: 3200,
+          default: 1600
+        },
+        background: {
+          type: "string",
+          title: "Fond",
+          default: "#ffffff"
+        }
+      }
+    });
+    return;
+  }
+
   res.json({
     title: "Export options",
     type: "object",
@@ -716,6 +843,17 @@ app.get("/rendering-info/:id/:target", requireAuth, async (req, res, next) => {
       }
     }
 
+    if (req.params.target === "export-png") {
+      const image = await fetchRenderingPng({
+        item,
+        target: req.params.target,
+        toolRuntimeConfig
+      });
+      res.set("content-type", image.type);
+      res.send(image.buffer);
+      return;
+    }
+
     const renderingInfo = await fetchRenderingInfo({
       item,
       target: req.params.target,
@@ -734,10 +872,23 @@ app.post("/rendering-info/:target", requireAuth, async (req, res, next) => {
       item.tool = TOOL_NAME;
     }
 
+    const toolRuntimeConfig = req.body?.toolRuntimeConfig || null;
+
+    if (req.params.target === "export-png") {
+      const image = await fetchRenderingPng({
+        item,
+        target: req.params.target,
+        toolRuntimeConfig
+      });
+      res.set("content-type", image.type);
+      res.send(image.buffer);
+      return;
+    }
+
     const renderingInfo = await fetchRenderingInfo({
       item,
       target: req.params.target,
-      toolRuntimeConfig: req.body?.toolRuntimeConfig || null
+      toolRuntimeConfig
     });
     res.json(renderingInfo);
   } catch (error) {
