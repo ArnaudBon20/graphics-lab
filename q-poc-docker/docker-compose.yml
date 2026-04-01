@@ -43,7 +43,8 @@ services:
       - "3001:3001"
 
   q-editor:
-    image: nzzonline/q-editor:latest
+    image: nzzonline/q-editor:v6.6.0
+    platform: linux/amd64
     container_name: q-poc-editor
     restart: unless-stopped
     depends_on:
@@ -51,7 +52,7 @@ services:
     environment:
       PORT: 8080
       Q_SERVER_BASE_URL: http://localhost:3001
-      LOGIN_MESSAGE: Mini POC Q (local): connectez-vous avec n'importe quel identifiant.
+      LOGIN_MESSAGE: "Mini POC Q (local): connectez-vous avec n'importe quel identifiant."
       DEV_LOGGING: "false"
       PUSH_STATE: "false"
     ports:
