@@ -2515,18 +2515,76 @@ async function playCurrentChartAnimation() {
 
   try {
     await ensureExportFontsLoaded();
-    await animateChartFrames({
-      context,
-      durationMs: ANIMATION_DURATION_MS,
-      frameRate: VIDEO_FRAME_RATE,
-      onFrame: async (markup) => {
-        preview.innerHTML = markup;
-      },
+    preview.innerHTML = renderSvgChart({
+      title: context.state.title,
+      subtitle: context.state.subtitle,
+      source: context.state.source,
+      chartType: context.state.chartType,
+      rows: context.parsed.rows,
+      series: context.series,
     });
+    await animatePreviewReveal();
   } finally {
     isPreviewAnimating = false;
     render();
   }
+}
+
+async function animatePreviewReveal() {
+  const svg = preview.querySelector("svg");
+
+  if (!svg) {
+    return;
+  }
+
+  const timing = {
+    duration: ANIMATION_DURATION_MS,
+    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+    fill: "both",
+  };
+
+  const resetStyles = () => {
+    svg.style.willChange = "";
+    svg.style.clipPath = "";
+    svg.style.transform = "";
+    svg.style.opacity = "";
+    svg.style.transition = "";
+  };
+
+  svg.style.willChange = "clip-path, transform, opacity";
+
+  if (typeof svg.animate === "function") {
+    const reveal = svg.animate(
+      [{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)" }],
+      timing,
+    );
+    const motion = svg.animate(
+      [{ opacity: 0.62, transform: "translateY(8px)" }, { opacity: 1, transform: "translateY(0)" }],
+      timing,
+    );
+
+    await Promise.allSettled([reveal.finished, motion.finished]);
+    resetStyles();
+    return;
+  }
+
+  svg.style.clipPath = "inset(0 100% 0 0)";
+  svg.style.transform = "translateY(8px)";
+  svg.style.opacity = "0.62";
+  svg.style.transition = [
+    `clip-path ${ANIMATION_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+    `transform ${ANIMATION_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+    `opacity ${ANIMATION_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+  ].join(", ");
+
+  void svg.getBoundingClientRect();
+
+  svg.style.clipPath = "inset(0 0 0 0)";
+  svg.style.transform = "translateY(0)";
+  svg.style.opacity = "1";
+
+  await wait(ANIMATION_DURATION_MS + 30);
+  resetStyles();
 }
 
 async function exportCurrentChartAsVideo() {
@@ -2604,13 +2662,17 @@ async function exportCurrentChartAsVideo() {
 
     recorder.start();
 
-    await animateChartFrames({
-      context,
+    const baseImage = await loadImage(buildSvgDataUrl(exportData.markup));
+
+    await recordRevealVideoFrames({
+      canvas,
+      context2d,
+      image: baseImage,
       durationMs: ANIMATION_DURATION_MS,
       frameRate: VIDEO_FRAME_RATE,
-      onFrame: (markup) => drawSvgMarkupOnCanvas(markup, canvas, context2d),
     });
 
+    drawRevealFrame({ canvas, context2d, image: baseImage, progress: 1 });
     await wait(VIDEO_HOLD_DURATION_MS);
     recorder.stop();
     await recorderStopped;
@@ -2634,14 +2696,13 @@ async function exportCurrentChartAsVideo() {
   }
 }
 
-async function animateChartFrames({ context, durationMs, frameRate, onFrame }) {
+async function recordRevealVideoFrames({ canvas, context2d, image, durationMs, frameRate }) {
   const totalFrames = Math.max(Math.round((durationMs / 1000) * frameRate), 18);
   const frameDelay = 1000 / frameRate;
 
   for (let frameIndex = 0; frameIndex <= totalFrames; frameIndex += 1) {
-    const progress = easeOutCubic(frameIndex / totalFrames);
-    const markup = buildAnimatedChartMarkup(context, progress);
-    await onFrame(markup, progress, frameIndex, totalFrames);
+    const progress = frameIndex / totalFrames;
+    drawRevealFrame({ canvas, context2d, image, progress });
 
     if (frameIndex < totalFrames) {
       await wait(frameDelay);
@@ -2649,50 +2710,20 @@ async function animateChartFrames({ context, durationMs, frameRate, onFrame }) {
   }
 }
 
-function buildAnimatedChartMarkup(context, progress) {
-  return renderSvgChart({
-    title: context.state.title,
-    subtitle: context.state.subtitle,
-    source: context.state.source,
-    chartType: context.state.chartType,
-    rows: buildAnimatedRows(context.parsed.rows, progress),
-    series: context.series,
-  });
-}
+function drawRevealFrame({ canvas, context2d, image, progress }) {
+  const eased = easeOutCubic(clamp(progress, 0, 1));
+  const revealWidth = Math.max(Math.round(canvas.width * eased), 1);
 
-function buildAnimatedRows(rows, progress) {
-  return rows.map((row) => {
-    const values = Object.fromEntries(
-      Object.entries(row.values).map(([key, value]) => [key, normalizeAnimatedValue(value * progress)]),
-    );
-    const valueKeys = Object.keys(values);
-    const total = valueKeys.reduce((sum, key) => sum + values[key], 0);
-    const primaryKey = valueKeys[0];
-
-    return {
-      label: row.label,
-      values,
-      total,
-      value: primaryKey ? values[primaryKey] : normalizeAnimatedValue(row.value * progress),
-    };
-  });
-}
-
-function normalizeAnimatedValue(value) {
-  if (Math.abs(value) < 0.0001) {
-    return 0;
-  }
-
-  return Number.parseFloat(value.toFixed(3));
-}
-
-async function drawSvgMarkupOnCanvas(markup, canvas, context2d) {
-  const image = await loadImage(buildSvgDataUrl(markup));
   context2d.fillStyle = "#ffffff";
   context2d.fillRect(0, 0, canvas.width, canvas.height);
   context2d.imageSmoothingEnabled = true;
   context2d.imageSmoothingQuality = "high";
+  context2d.save();
+  context2d.beginPath();
+  context2d.rect(0, 0, revealWidth, canvas.height);
+  context2d.clip();
   context2d.drawImage(image, 0, 0, canvas.width, canvas.height);
+  context2d.restore();
 }
 
 function getVideoRecorderProfile() {
