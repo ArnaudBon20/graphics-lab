@@ -57,7 +57,6 @@ const projectVersionMeta = document.querySelector("#project-version-meta");
 const projectHistory = document.querySelector("#project-history");
 const playAnimationButton = document.querySelector("#play-animation");
 const exportVideoButton = document.querySelector("#export-video");
-const csvFileNameLabel = document.querySelector("#csv-file-name");
 
 const fields = {
   projectName: document.querySelector("#project-name"),
@@ -147,8 +146,6 @@ function buildUiText(language) {
       previewViewportMobile: "Mobil",
       previewViewportDesktop: "Desktop",
       previewViewportWide: "Grosser Bildschirm",
-      csvFileEmpty: "Keine Datei ausgewaehlt.",
-      csvFileLoaded: ({ name }) => `Datei: ${name}`,
       animationPreviewFailed: "Die Animation konnte nicht abgespielt werden.",
       videoExportFailed: "Das Video konnte im Moment nicht exportiert werden.",
       videoExportUnsupported: "Der Videoexport ist in diesem Browser nicht verfuegbar.",
@@ -230,8 +227,6 @@ function buildUiText(language) {
     previewViewportMobile: "Mobile",
     previewViewportDesktop: "Desktop",
     previewViewportWide: "Écran large",
-    csvFileEmpty: "Aucun fichier sélectionné.",
-    csvFileLoaded: ({ name }) => `Fichier : ${name}`,
     animationPreviewFailed: "Impossible de lire l'animation pour le moment.",
     videoExportFailed: "Impossible d'exporter la vidéo pour le moment.",
     videoExportUnsupported: "L'export vidéo n'est pas disponible dans ce navigateur.",
@@ -1526,13 +1521,6 @@ function syncAuxiliaryUi() {
   const config = getChartConfig(currentChartType);
   addSeriesButton.hidden = !config.allowSeriesEditing || seriesConfig.length >= config.maxSeries;
   seriesCountValue.textContent = String(seriesConfig.length);
-  const csvFile = getSelectedCsvFile();
-
-  if (csvFileNameLabel) {
-    csvFileNameLabel.textContent = csvFile
-      ? UI_TEXT.csvFileLoaded({ name: csvFile.name })
-      : UI_TEXT.csvFileEmpty;
-  }
 
   if (playAnimationButton) {
     playAnimationButton.disabled = isPreviewAnimating || isVideoExporting;
