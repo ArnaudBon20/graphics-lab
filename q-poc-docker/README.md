@@ -12,6 +12,8 @@ Le tool inclut maintenant une premiere integration "style CDF":
 - palette et style visuel CDF (bleu/rouge/gris)
 - police configurable (defaut `Frutiger, Arial, sans-serif`)
 - export PNG via bouton dans Q-editor
+- page d'accueil avec 3 bulles de modeles (icones SVG)
+- section "Versions sauvegardees" en dessous
 
 ## Demarrage rapide
 

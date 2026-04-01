@@ -8,11 +8,53 @@ const PORT = Number(process.env.PORT || 3001);
 const COUCH_URL =
   process.env.COUCH_URL || "http://admin:password@couchdb:5984";
 const COUCH_DB = process.env.COUCH_DB || "q_items";
-const TOOL_NAME = process.env.TOOL_NAME || "simple-bars";
 const TOOL_BASE_URL = process.env.TOOL_BASE_URL || "http://tool-basic:4000";
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "http://localhost:8080";
 const SESSION_SECRET = process.env.SESSION_SECRET || "q-poc-dev-secret";
 const SEED_EXAMPLE_ITEM = process.env.SEED_EXAMPLE_ITEM !== "false";
+
+const TOOL_VARIANTS = [
+  {
+    name: "cdf-stacked-columns",
+    chartType: "stacked-columns",
+    labels: {
+      fr: "Colonnes empilees",
+      de: "Gestapelte Saulen",
+      en: "Stacked Columns"
+    },
+    icon:
+      '<svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="28" width="10" height="15" fill="#9FA3A7"/><rect x="9" y="20" width="10" height="8" fill="#274F8A"/><rect x="9" y="14" width="10" height="6" fill="#E05B4F"/><rect x="22" y="24" width="10" height="19" fill="#9FA3A7"/><rect x="22" y="12" width="10" height="12" fill="#274F8A"/><rect x="22" y="6" width="10" height="6" fill="#E05B4F"/><rect x="35" y="31" width="10" height="12" fill="#9FA3A7"/><rect x="35" y="18" width="10" height="13" fill="#274F8A"/><rect x="35" y="10" width="10" height="8" fill="#E05B4F"/></svg>'
+  },
+  {
+    name: "cdf-plus-minus-columns",
+    chartType: "plus-minus-columns",
+    labels: {
+      fr: "Colonnes +/-",
+      de: "Plus/Minus Saulen",
+      en: "Plus/Minus Columns"
+    },
+    icon:
+      '<svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><line x1="7" y1="26" x2="45" y2="26" stroke="#8E98A3" stroke-width="1.6"/><rect x="10" y="12" width="10" height="14" fill="#274F8A"/><rect x="22" y="26" width="10" height="11" fill="#E05B4F"/><rect x="34" y="8" width="10" height="18" fill="#274F8A"/></svg>'
+  },
+  {
+    name: "cdf-bars",
+    chartType: "bars",
+    labels: {
+      fr: "Barres verticales",
+      de: "Senkrechte Balken",
+      en: "Vertical Bars"
+    },
+    icon:
+      '<svg viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="25" width="8" height="18" fill="#274F8A"/><rect x="21" y="18" width="8" height="25" fill="#E05B4F"/><rect x="33" y="11" width="8" height="32" fill="#274F8A"/></svg>'
+  }
+];
+
+const LEGACY_TOOL_ALIASES = new Map([["simple-bars", "cdf-stacked-columns"]]);
+const TOOL_BY_NAME = new Map(TOOL_VARIANTS.map((tool) => [tool.name, tool]));
+const DEFAULT_TOOL_NAME = TOOL_VARIANTS[0].name;
+const FALLBACK_EMPTY_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9Ww0m2EAAAAASUVORK5CYII=",
+  "base64"
+);
 
 const nano = Nano(COUCH_URL);
 const app = express();
@@ -20,11 +62,8 @@ const app = express();
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || origin === ALLOWED_ORIGIN) {
-        callback(null, true);
-        return;
-      }
-      callback(new Error(`Origin not allowed: ${origin}`));
+      // POC: allow all origins to avoid local hostname mismatches.
+      callback(null, true);
     },
     credentials: true
   })
@@ -51,6 +90,10 @@ let db;
 
 const baseTranslations = {
   general: {
+    createLabel: "Choisir un modele de graphique",
+    searchEditLabel: "Versions sauvegardees",
+    showAllTools: "Afficher toutes les variantes",
+    showLessTools: "Afficher uniquement les principales",
     username: "Nom d'utilisateur",
     password: "Mot de passe",
     login: "Connexion",
@@ -130,10 +173,20 @@ const translationsByLang = {
 };
 
 const toolNamesByLang = {
-  fr: { [TOOL_NAME]: "Modeles graphiques CDF" },
-  de: { [TOOL_NAME]: "CDF-Grafikvorlagen" },
-  en: { [TOOL_NAME]: "CDF Graphic Templates" }
+  fr: {},
+  de: {},
+  en: {}
 };
+
+for (const tool of TOOL_VARIANTS) {
+  toolNamesByLang.fr[tool.name] = tool.labels.fr;
+  toolNamesByLang.de[tool.name] = tool.labels.de;
+  toolNamesByLang.en[tool.name] = tool.labels.en;
+}
+
+toolNamesByLang.fr["simple-bars"] = toolNamesByLang.fr["cdf-stacked-columns"];
+toolNamesByLang.de["simple-bars"] = toolNamesByLang.de["cdf-stacked-columns"];
+toolNamesByLang.en["simple-bars"] = toolNamesByLang.en["cdf-stacked-columns"];
 
 const toolLocaleByLang = {
   fr: {
@@ -193,6 +246,50 @@ function getRequestedLang(rawLang) {
 
 function getSessionUser(req) {
   return req.session.user || null;
+}
+
+function normalizeToolName(rawToolName) {
+  if (TOOL_BY_NAME.has(rawToolName)) {
+    return rawToolName;
+  }
+  if (LEGACY_TOOL_ALIASES.has(rawToolName)) {
+    return LEGACY_TOOL_ALIASES.get(rawToolName);
+  }
+  return DEFAULT_TOOL_NAME;
+}
+
+function getToolVariant(rawToolName) {
+  return TOOL_BY_NAME.get(normalizeToolName(rawToolName));
+}
+
+function isKnownTool(rawToolName) {
+  if (TOOL_BY_NAME.has(rawToolName)) {
+    return true;
+  }
+  return LEGACY_TOOL_ALIASES.has(rawToolName);
+}
+
+function withToolDefaults(itemInput = {}, rawToolName = undefined) {
+  const variant = getToolVariant(rawToolName || itemInput.tool);
+  const normalizedToolName = variant?.name || DEFAULT_TOOL_NAME;
+
+  return {
+    ...itemInput,
+    tool: normalizedToolName,
+    chartType: itemInput.chartType || variant?.chartType || "stacked-columns",
+    fontFamily: itemInput.fontFamily || "Frutiger, Arial, sans-serif",
+    positiveColor: itemInput.positiveColor || "#274F8A",
+    negativeColor: itemInput.negativeColor || "#E05B4F"
+  };
+}
+
+function escapeHtml(input) {
+  return String(input || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function buildDefaultUser(username) {
@@ -265,33 +362,12 @@ async function ensureExampleItem() {
   }
 
   const date = nowIso();
-  const item = {
-    _id: `sample-${Date.now()}`,
-    title: "Nombre de cas traites",
+  const sharedMeta = {
     subtitle: "POC Q - integration modeles CDF",
     source: "SOURCE : CDF",
-    chartType: "stacked-columns",
     fontFamily: "Frutiger, Arial, sans-serif",
-    positiveColor: "#E05B4F",
+    positiveColor: "#274F8A",
     negativeColor: "#E05B4F",
-    tool: TOOL_NAME,
-    values: [
-      { label: "2020", series: "Employes", value: 311, color: "#9FA3A7" },
-      { label: "2020", series: "Externes", value: 96, color: "#274F8A" },
-      { label: "2020", series: "Annonces", value: 77, color: "#E05B4F" },
-      { label: "2021", series: "Employes", value: 229, color: "#9FA3A7" },
-      { label: "2021", series: "Externes", value: 95, color: "#274F8A" },
-      { label: "2021", series: "Annonces", value: 78, color: "#E05B4F" },
-      { label: "2022", series: "Employes", value: 47, color: "#9FA3A7" },
-      { label: "2022", series: "Externes", value: 132, color: "#274F8A" },
-      { label: "2022", series: "Annonces", value: 100, color: "#E05B4F" },
-      { label: "2023", series: "Employes", value: 22, color: "#9FA3A7" },
-      { label: "2023", series: "Externes", value: 225, color: "#274F8A" },
-      { label: "2023", series: "Annonces", value: 125, color: "#E05B4F" },
-      { label: "2024", series: "Employes", value: 10, color: "#9FA3A7" },
-      { label: "2024", series: "Externes", value: 252, color: "#274F8A" },
-      { label: "2024", series: "Annonces", value: 113, color: "#E05B4F" }
-    ],
     active: true,
     department: "CDF",
     publication: "cdf",
@@ -302,7 +378,66 @@ async function ensureExampleItem() {
     updatedDate: date
   };
 
-  await db.insert(item);
+  const samples = [
+    {
+      _id: `sample-${Date.now()}-stacked`,
+      title: "Nombre de cas traites de lanceurs d'alerte 2015-2024",
+      tool: "cdf-stacked-columns",
+      chartType: "stacked-columns",
+      values: [
+        { label: "2020", series: "Employes", value: 311, color: "#9FA3A7" },
+        { label: "2020", series: "Externes", value: 96, color: "#274F8A" },
+        { label: "2020", series: "Annonces", value: 77, color: "#E05B4F" },
+        { label: "2021", series: "Employes", value: 229, color: "#9FA3A7" },
+        { label: "2021", series: "Externes", value: 95, color: "#274F8A" },
+        { label: "2021", series: "Annonces", value: 78, color: "#E05B4F" },
+        { label: "2022", series: "Employes", value: 47, color: "#9FA3A7" },
+        { label: "2022", series: "Externes", value: 132, color: "#274F8A" },
+        { label: "2022", series: "Annonces", value: 100, color: "#E05B4F" },
+        { label: "2023", series: "Employes", value: 22, color: "#9FA3A7" },
+        { label: "2023", series: "Externes", value: 225, color: "#274F8A" },
+        { label: "2023", series: "Annonces", value: 125, color: "#E05B4F" },
+        { label: "2024", series: "Employes", value: 10, color: "#9FA3A7" },
+        { label: "2024", series: "Externes", value: 252, color: "#274F8A" },
+        { label: "2024", series: "Annonces", value: 113, color: "#E05B4F" }
+      ]
+    },
+    {
+      _id: `sample-${Date.now()}-plusminus`,
+      title: "Solde du compte de resultats de la Confederation",
+      tool: "cdf-plus-minus-columns",
+      chartType: "plus-minus-columns",
+      values: [
+        { label: "2018", series: "Solde", value: 5701, color: "#274F8A" },
+        { label: "2019", series: "Solde", value: 5953, color: "#274F8A" },
+        { label: "2020", series: "Solde", value: -16858, color: "#E05B4F" },
+        { label: "2021", series: "Solde", value: -9716, color: "#E05B4F" },
+        { label: "2022", series: "Solde", value: -2396, color: "#E05B4F" },
+        { label: "2023", series: "Solde", value: 877, color: "#274F8A" }
+      ]
+    },
+    {
+      _id: `sample-${Date.now()}-bars`,
+      title: "Cas traites par annee (barres)",
+      tool: "cdf-bars",
+      chartType: "bars",
+      values: [
+        { label: "2019", series: "Cas", value: 122, color: "#274F8A" },
+        { label: "2020", series: "Cas", value: 187, color: "#274F8A" },
+        { label: "2021", series: "Cas", value: 484, color: "#274F8A" },
+        { label: "2022", series: "Cas", value: 279, color: "#E05B4F" },
+        { label: "2023", series: "Cas", value: 372, color: "#274F8A" },
+        { label: "2024", series: "Cas", value: 375, color: "#E05B4F" }
+      ]
+    }
+  ];
+
+  for (const sample of samples) {
+    await db.insert({
+      ...sharedMeta,
+      ...sample
+    });
+  }
 }
 
 function parseBooleanFilter(value) {
@@ -432,7 +567,7 @@ function buildTargets() {
       },
       userExportable: {
         buttonLabel: "PNG",
-        onlyTools: [TOOL_NAME],
+        onlyTools: TOOL_VARIANTS.map((tool) => tool.name),
         preview: {
           target: "web"
         },
@@ -448,12 +583,121 @@ function buildTargets() {
 }
 
 function buildTools() {
-  return [
-    {
-      name: TOOL_NAME,
-      icon: "bar_chart"
-    }
-  ];
+  return TOOL_VARIANTS.map((tool) => ({
+    name: tool.name,
+    icon: tool.icon
+  }));
+}
+
+function buildFallbackToolSchema(variant) {
+  return {
+    $schema: "http://json-schema.org/draft-07/schema#",
+    type: "object",
+    title: "Modeles graphiques CDF",
+    properties: {
+      chartType: {
+        type: "string",
+        title: "Type de graphique",
+        enum: ["stacked-columns", "plus-minus-columns", "bars"],
+        default: variant.chartType
+      },
+      title: {
+        type: "string",
+        title: "Titre",
+        default: variant.labels.fr
+      },
+      subtitle: {
+        type: "string",
+        title: "Sous-titre",
+        default: "SOURCE : CDF"
+      },
+      source: {
+        type: "string",
+        title: "Source",
+        default: "SOURCE : CDF"
+      },
+      fontFamily: {
+        type: "string",
+        title: "Police",
+        default: "Frutiger, Arial, sans-serif"
+      },
+      positiveColor: {
+        type: "string",
+        title: "Couleur positive",
+        default: "#274F8A"
+      },
+      negativeColor: {
+        type: "string",
+        title: "Couleur negative",
+        default: "#E05B4F"
+      },
+      values: {
+        type: "array",
+        title: "Valeurs",
+        minItems: 1,
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string", title: "Libelle", default: "" },
+            series: { type: "string", title: "Serie", default: "Serie 1" },
+            value: { type: "number", title: "Valeur", default: 0 },
+            color: { type: "string", title: "Couleur", default: "#274F8A" }
+          },
+          required: ["label", "value"]
+        },
+        default: [
+          { label: "2021", series: "Serie 1", value: 20, color: "#274F8A" },
+          { label: "2022", series: "Serie 1", value: 28, color: "#E05B4F" },
+          { label: "2023", series: "Serie 1", value: 17, color: "#274F8A" }
+        ]
+      }
+    },
+    required: ["chartType", "title", "values"]
+  };
+}
+
+function decorateSchemaForVariant(schemaInput, variant) {
+  const schema = JSON.parse(JSON.stringify(schemaInput || {}));
+  if (!schema.properties) {
+    schema.properties = {};
+  }
+
+  if (!schema.properties.chartType) {
+    schema.properties.chartType = {
+      type: "string",
+      enum: ["stacked-columns", "plus-minus-columns", "bars"]
+    };
+  }
+
+  schema.properties.chartType.default = variant.chartType;
+  if (schema.properties.title && !schema.properties.title.default) {
+    schema.properties.title.default = variant.labels.fr;
+  }
+  if (schema.properties.fontFamily && !schema.properties.fontFamily.default) {
+    schema.properties.fontFamily.default = "Frutiger, Arial, sans-serif";
+  }
+
+  return schema;
+}
+
+function buildFallbackRenderingInfo(itemInput) {
+  const item = withToolDefaults(itemInput);
+  const title = escapeHtml(item.title || "Apercu du graphique");
+  const subtitle = escapeHtml(item.subtitle || "");
+  const source = escapeHtml(item.source || "");
+
+  return {
+    markup: `<div class="q-fallback-preview">
+<h3>${title}</h3>
+<p>${subtitle}</p>
+<small>${source}</small>
+</div>`,
+    stylesheets: [
+      {
+        content: ".q-fallback-preview{font-family:Frutiger,Arial,sans-serif;padding:20px;color:#1F2A37}.q-fallback-preview h3{margin:0 0 8px;font-size:20px}.q-fallback-preview p{margin:0 0 8px;color:#4A5A6B}.q-fallback-preview small{color:#6C7884}"
+      }
+    ]
+  };
 }
 
 async function fetchToolSchema(payload = null) {
@@ -583,7 +827,7 @@ app.get("/editor/tools", (req, res) => {
 });
 
 app.get("/editor/tools-ordered-by-user-usage", requireAuth, (req, res) => {
-  res.json([TOOL_NAME]);
+  res.json(TOOL_VARIANTS.map((tool) => tool.name));
 });
 
 app.get("/editor/locales/:lng/translation.json", (req, res) => {
@@ -597,7 +841,7 @@ app.get("/editor/tools/locales/:lng/translation.json", (req, res) => {
 });
 
 app.get("/tools/:tool/locales/:lng/translation.json", (req, res) => {
-  if (req.params.tool !== TOOL_NAME) {
+  if (!isKnownTool(req.params.tool)) {
     res.status(404).json({ error: "unknown tool" });
     return;
   }
@@ -607,12 +851,17 @@ app.get("/tools/:tool/locales/:lng/translation.json", (req, res) => {
 
 app.get("/tools/:tool/schema.json", async (req, res, next) => {
   try {
-    if (req.params.tool !== TOOL_NAME) {
+    if (!isKnownTool(req.params.tool)) {
       res.status(404).json({ error: "unknown tool" });
       return;
     }
-    const schema = await fetchToolSchema();
-    res.json(schema);
+    const variant = getToolVariant(req.params.tool);
+    try {
+      const schema = await fetchToolSchema();
+      res.json(decorateSchemaForVariant(schema, variant));
+    } catch (toolError) {
+      res.json(buildFallbackToolSchema(variant));
+    }
   } catch (error) {
     next(error);
   }
@@ -620,12 +869,17 @@ app.get("/tools/:tool/schema.json", async (req, res, next) => {
 
 app.post("/tools/:tool/schema.json", async (req, res, next) => {
   try {
-    if (req.params.tool !== TOOL_NAME) {
+    if (!isKnownTool(req.params.tool)) {
       res.status(404).json({ error: "unknown tool" });
       return;
     }
-    const schema = await fetchToolSchema(req.body);
-    res.json(schema);
+    const variant = getToolVariant(req.params.tool);
+    try {
+      const schema = await fetchToolSchema(req.body);
+      res.json(decorateSchemaForVariant(schema, variant));
+    } catch (toolError) {
+      res.json(buildFallbackToolSchema(variant));
+    }
   } catch (error) {
     next(error);
   }
@@ -634,7 +888,7 @@ app.post("/tools/:tool/schema.json", async (req, res, next) => {
 app.get("/item/:id", requireAuth, async (req, res, next) => {
   try {
     const doc = await db.get(req.params.id);
-    res.json(doc);
+    res.json(withToolDefaults(doc));
   } catch (error) {
     if (error.statusCode === 404) {
       res.status(404).json({ error: "item not found" });
@@ -650,18 +904,17 @@ app.post("/item", requireAuth, async (req, res, next) => {
     const now = nowIso();
     const payload = req.body || {};
 
-    const item = {
+    const item = withToolDefaults({
       ...payload,
       _id: payload._id || crypto.randomUUID(),
       createdDate: payload.createdDate || now,
       createdBy: payload.createdBy || user.username,
       updatedDate: now,
       updatedBy: user.username,
-      tool: payload.tool || TOOL_NAME,
       department: payload.department || user.department,
       publication: payload.publication || user.publication,
       acronym: payload.acronym || user.acronym
-    };
+    });
 
     if (typeof item.active !== "boolean") {
       item.active = false;
@@ -702,11 +955,11 @@ app.put("/item", requireAuth, async (req, res, next) => {
     }
 
     const now = nowIso();
-    const item = {
+    const item = withToolDefaults({
       ...payload,
       updatedDate: now,
       updatedBy: user.username
-    };
+    });
 
     const result = await db.insert(item);
     res.json({
@@ -724,7 +977,10 @@ app.get("/search", requireAuth, async (req, res, next) => {
   try {
     const docs = await listAllDocs();
 
-    const toolFilter = parseToolFilter(req.query.tool);
+    const rawToolFilter = parseToolFilter(req.query.tool);
+    const toolFilter = rawToolFilter
+      ? rawToolFilter.map((toolName) => normalizeToolName(toolName))
+      : null;
     const createdByFilter = req.query.createdBy;
     const departmentFilter = req.query.department;
     const publicationFilter = req.query.publication;
@@ -735,7 +991,12 @@ app.get("/search", requireAuth, async (req, res, next) => {
 
     const filteredDocs = docs
       .filter((doc) => {
-        if (toolFilter && toolFilter.length > 0 && !toolFilter.includes(doc.tool)) {
+        const normalizedDocTool = normalizeToolName(doc.tool);
+        if (
+          toolFilter &&
+          toolFilter.length > 0 &&
+          !toolFilter.includes(normalizedDocTool)
+        ) {
           return false;
         }
         if (createdByFilter && doc.createdBy !== createdByFilter) {
@@ -754,7 +1015,7 @@ app.get("/search", requireAuth, async (req, res, next) => {
           const haystack = [
             doc.title,
             doc.subtitle,
-            doc.tool,
+            normalizedDocTool,
             doc.department,
             doc.acronym
           ]
@@ -766,7 +1027,8 @@ app.get("/search", requireAuth, async (req, res, next) => {
         }
         return true;
       })
-      .sort((a, b) => getSortDate(b) - getSortDate(a));
+      .sort((a, b) => getSortDate(b) - getSortDate(a))
+      .map((doc) => withToolDefaults(doc));
 
     const limit = Math.max(1, Number(req.query.limit || 18));
     const offset = parseBookmark(req.query.bookmark);
@@ -840,7 +1102,8 @@ app.get("/display-options-schema/:id/:target.json", (req, res) => {
 
 app.get("/rendering-info/:id/:target", async (req, res, next) => {
   try {
-    const item = await db.get(req.params.id);
+    const itemDoc = await db.get(req.params.id);
+    const item = withToolDefaults(itemDoc);
     const toolRuntimeConfigRaw = req.query.toolRuntimeConfig;
     let toolRuntimeConfig = null;
     if (toolRuntimeConfigRaw) {
@@ -852,21 +1115,31 @@ app.get("/rendering-info/:id/:target", async (req, res, next) => {
     }
 
     if (req.params.target === "export-png") {
-      const image = await fetchRenderingPng({
+      try {
+        const image = await fetchRenderingPng({
+          item,
+          target: req.params.target,
+          toolRuntimeConfig
+        });
+        res.set("content-type", image.type);
+        res.send(image.buffer);
+      } catch (pngError) {
+        res.set("content-type", "image/png");
+        res.send(FALLBACK_EMPTY_PNG);
+      }
+      return;
+    }
+
+    let renderingInfo;
+    try {
+      renderingInfo = await fetchRenderingInfo({
         item,
         target: req.params.target,
         toolRuntimeConfig
       });
-      res.set("content-type", image.type);
-      res.send(image.buffer);
-      return;
+    } catch (toolError) {
+      renderingInfo = buildFallbackRenderingInfo(item);
     }
-
-    const renderingInfo = await fetchRenderingInfo({
-      item,
-      target: req.params.target,
-      toolRuntimeConfig
-    });
     res.json(renderingInfo);
   } catch (error) {
     next(error);
@@ -875,29 +1148,36 @@ app.get("/rendering-info/:id/:target", async (req, res, next) => {
 
 app.post("/rendering-info/:target", async (req, res, next) => {
   try {
-    const item = req.body?.item || {};
-    if (!item.tool) {
-      item.tool = TOOL_NAME;
-    }
+    const item = withToolDefaults(req.body?.item || {});
 
     const toolRuntimeConfig = req.body?.toolRuntimeConfig || null;
 
     if (req.params.target === "export-png") {
-      const image = await fetchRenderingPng({
+      try {
+        const image = await fetchRenderingPng({
+          item,
+          target: req.params.target,
+          toolRuntimeConfig
+        });
+        res.set("content-type", image.type);
+        res.send(image.buffer);
+      } catch (pngError) {
+        res.set("content-type", "image/png");
+        res.send(FALLBACK_EMPTY_PNG);
+      }
+      return;
+    }
+
+    let renderingInfo;
+    try {
+      renderingInfo = await fetchRenderingInfo({
         item,
         target: req.params.target,
         toolRuntimeConfig
       });
-      res.set("content-type", image.type);
-      res.send(image.buffer);
-      return;
+    } catch (toolError) {
+      renderingInfo = buildFallbackRenderingInfo(item);
     }
-
-    const renderingInfo = await fetchRenderingInfo({
-      item,
-      target: req.params.target,
-      toolRuntimeConfig
-    });
     res.json(renderingInfo);
   } catch (error) {
     next(error);
