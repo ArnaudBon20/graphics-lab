@@ -9,7 +9,7 @@ const REPORT_COLORS = {
   link: "#5d77a8",
 };
 
-const STORAGE_KEY = "graphics-lab-session-v3";
+const STORAGE_KEY = "graphics-lab-session-v4";
 const PROJECTS_STORAGE_KEY = "graphics-lab-projects-v1";
 const DEFAULT_CHART_TYPE = "annual-stacked";
 const MIN_ROWS = 5;
@@ -658,6 +658,11 @@ function getChartConfig(chartType) {
   return CHART_CONFIGS[chartType] || CHART_CONFIGS[DEFAULT_CHART_TYPE];
 }
 
+function getSelectedChartType() {
+  const nextType = fields.chartType.value;
+  return CHART_CONFIGS[nextType] ? nextType : currentChartType;
+}
+
 function normalizePreviewViewport(viewport) {
   return PREVIEW_VIEWPORTS[viewport] ? viewport : DEFAULT_PREVIEW_VIEWPORT;
 }
@@ -675,22 +680,26 @@ function getPreviewViewportLabel() {
 }
 
 document.querySelector("#load-sample").addEventListener("click", () => {
+  const sampleType = getSelectedChartType();
   applySession({
     projectId: null,
     projectName: "",
     currentVersionId: null,
-    state: getSampleState(currentChartType),
+    previewViewport: currentPreviewViewport,
+    state: getSampleState(sampleType),
   });
   render({ syncAll: true });
 });
 
 document.querySelector("#new-project").addEventListener("click", () => {
   localStorage.removeItem(STORAGE_KEY);
+  const blankType = getSelectedChartType();
   applySession({
     projectId: null,
     projectName: "",
     currentVersionId: null,
-    state: createBlankState(currentChartType),
+    previewViewport: currentPreviewViewport,
+    state: createBlankState(blankType),
   });
   render({ syncAll: true });
 });
@@ -701,11 +710,13 @@ document.querySelector("#fork-project").addEventListener("click", () => {
 });
 
 document.querySelector("#reset-form").addEventListener("click", () => {
+  const blankType = getSelectedChartType();
   applySession({
     projectId: null,
     projectName: "",
     currentVersionId: null,
-    state: createBlankState(currentChartType),
+    previewViewport: currentPreviewViewport,
+    state: createBlankState(blankType),
   });
   render({ syncAll: true });
 });
