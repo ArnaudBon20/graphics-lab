@@ -11,6 +11,23 @@ services:
     volumes:
       - couchdb_data:/opt/couchdb/data
 
+  couchdb-init:
+    image: curlimages/curl:8.7.1
+    container_name: q-poc-couchdb-init
+    restart: "no"
+    depends_on:
+      - couchdb
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        until curl -sf "http://admin:password@couchdb:5984/_up"; do
+          sleep 1
+        done
+        curl -sf -X PUT "http://admin:password@couchdb:5984/_users" || true
+        curl -sf -X PUT "http://admin:password@couchdb:5984/_replicator" || true
+        curl -sf -X PUT "http://admin:password@couchdb:5984/_global_changes" || true
+
   tool-basic:
     build:
       context: ./tool-basic
@@ -29,6 +46,7 @@ services:
     restart: unless-stopped
     depends_on:
       - couchdb
+      - couchdb-init
       - tool-basic
     environment:
       PORT: 3001
