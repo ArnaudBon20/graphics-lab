@@ -193,6 +193,11 @@ textarea {
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
+input,
+select {
+  min-height: 52px;
+}
+
 textarea {
   resize: vertical;
   min-height: 110px;
