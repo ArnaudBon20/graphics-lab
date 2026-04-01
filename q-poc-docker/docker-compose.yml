@@ -67,6 +67,7 @@ services:
       ALLOWED_ORIGIN: http://localhost:8080
       SESSION_SECRET: q-poc-dev-secret
       SEED_EXAMPLE_ITEM: "true"
+      POC_LOCAL_RENDERING: "true"
       NODE_OPTIONS: --max-old-space-size=256
     healthcheck:
       test:

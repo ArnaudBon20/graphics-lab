@@ -11,6 +11,7 @@ const COUCH_DB = process.env.COUCH_DB || "q_items";
 const TOOL_BASE_URL = process.env.TOOL_BASE_URL || "http://tool-basic:4000";
 const SESSION_SECRET = process.env.SESSION_SECRET || "q-poc-dev-secret";
 const SEED_EXAMPLE_ITEM = process.env.SEED_EXAMPLE_ITEM !== "false";
+const POC_LOCAL_RENDERING = process.env.POC_LOCAL_RENDERING !== "false";
 
 const TOOL_VARIANTS = [
   {
@@ -71,6 +72,16 @@ app.use(
 app.options("*", cors());
 
 app.use(express.json({ limit: "2mb" }));
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[http] ${req.method} ${req.originalUrl} -> ${res.statusCode} (${Date.now() - start}ms)`
+    );
+  });
+  next();
+});
 app.use(
   session({
     name: "q-poc.sid",
@@ -859,6 +870,10 @@ app.get("/tools/:tool/schema.json", async (req, res, next) => {
       return;
     }
     const variant = getToolVariant(req.params.tool);
+    if (POC_LOCAL_RENDERING) {
+      res.json(buildFallbackToolSchema(variant));
+      return;
+    }
     try {
       const schema = await fetchToolSchema();
       res.json(decorateSchemaForVariant(schema, variant));
@@ -877,6 +892,10 @@ app.post("/tools/:tool/schema.json", async (req, res, next) => {
       return;
     }
     const variant = getToolVariant(req.params.tool);
+    if (POC_LOCAL_RENDERING) {
+      res.json(buildFallbackToolSchema(variant));
+      return;
+    }
     try {
       const schema = await fetchToolSchema(req.body);
       res.json(decorateSchemaForVariant(schema, variant));
@@ -1118,30 +1137,37 @@ app.get("/rendering-info/:id/:target", async (req, res, next) => {
     }
 
     if (req.params.target === "export-png") {
-      try {
-        const image = await fetchRenderingPng({
-          item,
-          target: req.params.target,
-          toolRuntimeConfig
-        });
-        res.set("content-type", image.type);
-        res.send(image.buffer);
-      } catch (pngError) {
+      if (POC_LOCAL_RENDERING) {
         res.set("content-type", "image/png");
         res.send(FALLBACK_EMPTY_PNG);
+      } else {
+        try {
+          const image = await fetchRenderingPng({
+            item,
+            target: req.params.target,
+            toolRuntimeConfig
+          });
+          res.set("content-type", image.type);
+          res.send(image.buffer);
+        } catch (pngError) {
+          res.set("content-type", "image/png");
+          res.send(FALLBACK_EMPTY_PNG);
+        }
       }
       return;
     }
 
-    let renderingInfo;
-    try {
-      renderingInfo = await fetchRenderingInfo({
-        item,
-        target: req.params.target,
-        toolRuntimeConfig
-      });
-    } catch (toolError) {
-      renderingInfo = buildFallbackRenderingInfo(item);
+    let renderingInfo = buildFallbackRenderingInfo(item);
+    if (!POC_LOCAL_RENDERING) {
+      try {
+        renderingInfo = await fetchRenderingInfo({
+          item,
+          target: req.params.target,
+          toolRuntimeConfig
+        });
+      } catch (toolError) {
+        renderingInfo = buildFallbackRenderingInfo(item);
+      }
     }
     res.json(renderingInfo);
   } catch (error) {
@@ -1156,30 +1182,37 @@ app.post("/rendering-info/:target", async (req, res, next) => {
     const toolRuntimeConfig = req.body?.toolRuntimeConfig || null;
 
     if (req.params.target === "export-png") {
-      try {
-        const image = await fetchRenderingPng({
-          item,
-          target: req.params.target,
-          toolRuntimeConfig
-        });
-        res.set("content-type", image.type);
-        res.send(image.buffer);
-      } catch (pngError) {
+      if (POC_LOCAL_RENDERING) {
         res.set("content-type", "image/png");
         res.send(FALLBACK_EMPTY_PNG);
+      } else {
+        try {
+          const image = await fetchRenderingPng({
+            item,
+            target: req.params.target,
+            toolRuntimeConfig
+          });
+          res.set("content-type", image.type);
+          res.send(image.buffer);
+        } catch (pngError) {
+          res.set("content-type", "image/png");
+          res.send(FALLBACK_EMPTY_PNG);
+        }
       }
       return;
     }
 
-    let renderingInfo;
-    try {
-      renderingInfo = await fetchRenderingInfo({
-        item,
-        target: req.params.target,
-        toolRuntimeConfig
-      });
-    } catch (toolError) {
-      renderingInfo = buildFallbackRenderingInfo(item);
+    let renderingInfo = buildFallbackRenderingInfo(item);
+    if (!POC_LOCAL_RENDERING) {
+      try {
+        renderingInfo = await fetchRenderingInfo({
+          item,
+          target: req.params.target,
+          toolRuntimeConfig
+        });
+      } catch (toolError) {
+        renderingInfo = buildFallbackRenderingInfo(item);
+      }
     }
     res.json(renderingInfo);
   } catch (error) {
@@ -1214,4 +1247,14 @@ start().catch((error) => {
   // eslint-disable-next-line no-console
   console.error("failed to start q-poc-server", error);
   process.exit(1);
+});
+
+process.on("unhandledRejection", (error) => {
+  // eslint-disable-next-line no-console
+  console.error("unhandledRejection", error);
+});
+
+process.on("uncaughtException", (error) => {
+  // eslint-disable-next-line no-console
+  console.error("uncaughtException", error);
 });
