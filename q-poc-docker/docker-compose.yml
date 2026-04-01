@@ -1,0 +1,61 @@
+services:
+  couchdb:
+    image: couchdb:3.3
+    container_name: q-poc-couchdb
+    restart: unless-stopped
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: password
+    ports:
+      - "5984:5984"
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+
+  tool-basic:
+    build:
+      context: ./tool-basic
+    container_name: q-poc-tool-basic
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+      TOOL_NAME: simple-bars
+    ports:
+      - "4000:4000"
+
+  q-server:
+    build:
+      context: ./q-server
+    container_name: q-poc-server
+    restart: unless-stopped
+    depends_on:
+      - couchdb
+      - tool-basic
+    environment:
+      PORT: 3001
+      COUCH_URL: http://admin:password@couchdb:5984
+      COUCH_DB: q_items
+      TOOL_NAME: simple-bars
+      TOOL_BASE_URL: http://tool-basic:4000
+      ALLOWED_ORIGIN: http://localhost:8080
+      SESSION_SECRET: q-poc-dev-secret
+      SEED_EXAMPLE_ITEM: "true"
+    ports:
+      - "3001:3001"
+
+  q-editor:
+    image: nzzonline/q-editor:latest
+    container_name: q-poc-editor
+    restart: unless-stopped
+    depends_on:
+      - q-server
+    environment:
+      PORT: 8080
+      Q_SERVER_BASE_URL: http://localhost:3001
+      LOGIN_MESSAGE: Mini POC Q (local): connectez-vous avec n'importe quel identifiant.
+      DEV_LOGGING: "false"
+      PUSH_STATE: "false"
+    ports:
+      - "8080:8080"
+
+volumes:
+  couchdb_data:
