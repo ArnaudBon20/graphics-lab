@@ -213,7 +213,14 @@
               </div>
               <p id="preview-meta" class="preview-meta"></p>
             </div>
-            <div id="chart-preview" class="chart-preview"></div>
+            <div class="viewport-switch" role="group" aria-label="Formats d'écran">
+              <button type="button" class="ghost compact" data-preview-viewport="mobile" aria-pressed="false">Mobile</button>
+              <button type="button" class="ghost compact is-current" data-preview-viewport="desktop" aria-pressed="true">Desktop</button>
+              <button type="button" class="ghost compact" data-preview-viewport="wide" aria-pressed="false">Écran large</button>
+            </div>
+            <div id="preview-stage" class="preview-stage" data-preview-mode="desktop">
+              <div id="chart-preview" class="chart-preview"></div>
+            </div>
             <p class="export-note">
               L'export PNG est calibré pour la largeur utile d'une page Word A4 standard, afin d'éviter un redimensionnement manuel au collage.
             </p>
@@ -228,16 +235,18 @@
         <section class="panel panel-code">
           <div class="panel-head">
             <div>
-              <p class="section-kicker">Code</p>
-              <h2>Configuration exportable</h2>
-            </div>
-            <div class="toolbar">
-              <button id="copy-config" type="button" class="ghost">Copier le JSON</button>
+              <p class="section-kicker">JSON</p>
+              <h2>Copie rapide</h2>
             </div>
           </div>
 
-          <article class="payload-card">
-            <pre id="payload-preview"></pre>
+          <article class="payload-card copy-card">
+            <p class="data-note">
+              Le payload complet reste disponible à la copie, sans afficher tout le JSON dans l'interface.
+            </p>
+            <div class="toolbar">
+              <button id="copy-config" type="button">Copier le JSON</button>
+            </div>
           </article>
         </section>
       </main>

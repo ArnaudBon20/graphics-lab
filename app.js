@@ -18,6 +18,12 @@ const MAX_PROJECT_VERSIONS = 24;
 const WORD_EXPORT_WIDTH_CM = 15.9;
 const WORD_EXPORT_DPI = 300;
 const EXPORT_FONT_FAMILY = '"League Spartan", "Helvetica Neue", Arial, sans-serif';
+const DEFAULT_PREVIEW_VIEWPORT = "desktop";
+const PREVIEW_VIEWPORTS = {
+  mobile: { maxWidth: 420 },
+  desktop: { maxWidth: 960 },
+  wide: { maxWidth: 1320 },
+};
 const CRC32_TABLE = createCrc32Table();
 const UI_LANGUAGE = (document.documentElement.lang || "fr").toLowerCase().startsWith("de")
   ? "de"
@@ -28,7 +34,8 @@ const SAMPLE_STATES = buildSampleStates(UI_LANGUAGE, CHART_CONFIGS);
 
 const form = document.querySelector("#editor-form");
 const preview = document.querySelector("#chart-preview");
-const payloadPreview = document.querySelector("#payload-preview");
+const previewStage = document.querySelector("#preview-stage");
+const previewViewportButtons = Array.from(document.querySelectorAll("[data-preview-viewport]"));
 const errorsList = document.querySelector("#errors-list");
 const warningsList = document.querySelector("#warnings-list");
 const qualityChip = document.querySelector("#quality-chip");
@@ -63,6 +70,7 @@ let seriesConfig = [];
 let dataRows = [];
 let currentProjectId = null;
 let currentVersionId = null;
+let currentPreviewViewport = DEFAULT_PREVIEW_VIEWPORT;
 
 function buildUiText(language) {
   if (language === "de") {
@@ -125,6 +133,9 @@ function buildUiText(language) {
       tableLabelPlaceholder: "Beschriftung",
       removeRowAria: ({ index }) => `Zeile ${index} loeschen`,
       previewRowsWord: "Zeilen",
+      previewViewportMobile: "Mobil",
+      previewViewportDesktop: "Desktop",
+      previewViewportWide: "Grosser Bildschirm",
       sourceLabel: "Quelle",
       sourceUpper: "QUELLE",
       exportUnavailable: "Export nicht moeglich: Es ist kein SVG verfuegbar.",
@@ -196,6 +207,9 @@ function buildUiText(language) {
     tableLabelPlaceholder: "Libellé",
     removeRowAria: ({ index }) => `Supprimer la ligne ${index}`,
     previewRowsWord: "lignes",
+    previewViewportMobile: "Mobile",
+    previewViewportDesktop: "Desktop",
+    previewViewportWide: "Écran large",
     sourceLabel: "Source",
     sourceUpper: "SOURCE",
     exportUnavailable: "Impossible d'exporter : aucun SVG n'est disponible.",
@@ -644,6 +658,22 @@ function getChartConfig(chartType) {
   return CHART_CONFIGS[chartType] || CHART_CONFIGS[DEFAULT_CHART_TYPE];
 }
 
+function normalizePreviewViewport(viewport) {
+  return PREVIEW_VIEWPORTS[viewport] ? viewport : DEFAULT_PREVIEW_VIEWPORT;
+}
+
+function getPreviewViewportLabel() {
+  if (currentPreviewViewport === "mobile") {
+    return UI_TEXT.previewViewportMobile;
+  }
+
+  if (currentPreviewViewport === "wide") {
+    return UI_TEXT.previewViewportWide;
+  }
+
+  return UI_TEXT.previewViewportDesktop;
+}
+
 document.querySelector("#load-sample").addEventListener("click", () => {
   applySession({
     projectId: null,
@@ -706,6 +736,19 @@ document.querySelector("#export-png").addEventListener("click", async () => {
     console.error(error);
     window.alert(UI_TEXT.pngExportFailed);
   }
+});
+
+previewViewportButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const nextViewport = normalizePreviewViewport(button.dataset.previewViewport);
+
+    if (nextViewport === currentPreviewViewport) {
+      return;
+    }
+
+    currentPreviewViewport = nextViewport;
+    render();
+  });
 });
 
 projectHistory.addEventListener("click", (event) => {
@@ -918,6 +961,7 @@ function loadSavedSession() {
         projectId: parsed.projectId ?? null,
         projectName: parsed.projectName ?? "",
         currentVersionId: parsed.currentVersionId ?? null,
+        previewViewport: parsed.previewViewport ?? DEFAULT_PREVIEW_VIEWPORT,
         state: parsed.state,
       };
     }
@@ -926,6 +970,7 @@ function loadSavedSession() {
       projectId: null,
       projectName: "",
       currentVersionId: null,
+      previewViewport: DEFAULT_PREVIEW_VIEWPORT,
       state: parsed,
     };
   } catch (error) {
@@ -964,6 +1009,7 @@ function applySession(session) {
   dataRows = normalized.rows;
   currentProjectId = session.projectId ?? null;
   currentVersionId = session.currentVersionId ?? null;
+  currentPreviewViewport = normalizePreviewViewport(session.previewViewport);
 
   fields.projectName.value = session.projectName ?? "";
   fields.title.value = normalized.title;
@@ -1069,6 +1115,7 @@ function getSessionSnapshot() {
     projectId: currentProjectId,
     projectName: fields.projectName.value.trim(),
     currentVersionId,
+    previewViewport: currentPreviewViewport,
     state: getState(),
   };
 }
@@ -1186,10 +1233,6 @@ function render(options = {}) {
   const state = getState();
   const parsed = parseTableRows(dataRows, seriesConfig);
   const checks = runChecks(state, parsed);
-  const payload = {
-    ...buildPayload(),
-    checks,
-  };
 
   if (syncAll) {
     renderTemplateNote();
@@ -1213,7 +1256,7 @@ function render(options = {}) {
   renderLists(checks);
   renderQuality(checks);
   renderPreviewMeta(parsed.rows.length, state.locale, state.chartType);
-  renderPayload(payload);
+  renderPreviewViewport();
   persistSession();
 
   if (checks.errors.length > 0) {
@@ -1410,11 +1453,23 @@ function renderQuality(checks) {
 }
 
 function renderPreviewMeta(rowCount, locale, chartType) {
-  previewMeta.textContent = `${rowCount} ${UI_TEXT.previewRowsWord} • ${locale.toUpperCase()} • ${getChartConfig(chartType).previewLabel}`;
+  previewMeta.textContent = `${rowCount} ${UI_TEXT.previewRowsWord} • ${locale.toUpperCase()} • ${getChartConfig(chartType).previewLabel} • ${getPreviewViewportLabel()}`;
 }
 
-function renderPayload(payload) {
-  payloadPreview.textContent = JSON.stringify(payload, null, 2);
+function renderPreviewViewport() {
+  if (previewStage) {
+    previewStage.dataset.previewMode = currentPreviewViewport;
+    previewStage.style.setProperty(
+      "--preview-max-width",
+      `${PREVIEW_VIEWPORTS[currentPreviewViewport].maxWidth}px`,
+    );
+  }
+
+  previewViewportButtons.forEach((button) => {
+    const isCurrent = normalizePreviewViewport(button.dataset.previewViewport) === currentPreviewViewport;
+    button.classList.toggle("is-current", isCurrent);
+    button.setAttribute("aria-pressed", String(isCurrent));
+  });
 }
 
 function renderProjectStatus() {

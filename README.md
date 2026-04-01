@@ -12,8 +12,10 @@ Prototype front-only pour tester une logique de creation, verification et export
 - graphiques en barres horizontales, verticales et courbe
 - checks de base orientes institutionnels
 - preview immediate
+- apercu de l'integration en mobile, desktop et ecran large
 - export SVG
 - export PNG calibre pour une page Word A4 standard
+- copie rapide du JSON sans afficher tout le payload a l'ecran
 - sauvegarde locale de projets avec historique de versions dans le navigateur
 - palette visuelle alignee sur des couleurs relevees sur efk.admin.ch
 

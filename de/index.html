@@ -222,7 +222,14 @@
               </div>
               <p id="preview-meta" class="preview-meta"></p>
             </div>
-            <div id="chart-preview" class="chart-preview"></div>
+            <div class="viewport-switch" role="group" aria-label="Bildschirmformate">
+              <button type="button" class="ghost compact" data-preview-viewport="mobile" aria-pressed="false">Mobil</button>
+              <button type="button" class="ghost compact is-current" data-preview-viewport="desktop" aria-pressed="true">Desktop</button>
+              <button type="button" class="ghost compact" data-preview-viewport="wide" aria-pressed="false">Grosser Bildschirm</button>
+            </div>
+            <div id="preview-stage" class="preview-stage" data-preview-mode="desktop">
+              <div id="chart-preview" class="chart-preview"></div>
+            </div>
             <p class="export-note">
               Der PNG-Export ist auf die nutzbare Breite einer Standard-A4-Seite in
               Word kalibriert, damit beim Einfuegen keine manuelle Groessenanpassung
@@ -239,16 +246,18 @@
         <section class="panel panel-code">
           <div class="panel-head">
             <div>
-              <p class="section-kicker">Code</p>
-              <h2>Exportierbare Konfiguration</h2>
-            </div>
-            <div class="toolbar">
-              <button id="copy-config" type="button" class="ghost">JSON kopieren</button>
+              <p class="section-kicker">JSON</p>
+              <h2>Schnell kopieren</h2>
             </div>
           </div>
 
-          <article class="payload-card">
-            <pre id="payload-preview"></pre>
+          <article class="payload-card copy-card">
+            <p class="data-note">
+              Das komplette Payload bleibt per Kopie verfuegbar, ohne das ganze JSON in der Oberflaeche anzuzeigen.
+            </p>
+            <div class="toolbar">
+              <button id="copy-config" type="button">JSON kopieren</button>
+            </div>
           </article>
         </section>
       </main>
