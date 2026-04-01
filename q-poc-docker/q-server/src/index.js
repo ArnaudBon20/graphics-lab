@@ -525,6 +525,7 @@ function buildEditorConfig() {
       { key: "fr", label: "fr" },
       { key: "de", label: "de" }
     ],
+    publications: [],
     departments: ["CDF"],
     lowNewItems: {
       threshold: 0,
