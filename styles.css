@@ -220,6 +220,12 @@ button:hover {
   transform: translateY(-1px);
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+  transform: none;
+}
+
 button.ghost,
 .row-remove {
   color: var(--ink);

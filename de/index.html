@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Graphics Lab</title>
-    <link rel="stylesheet" href="../styles.css?v=20260401" />
+    <link rel="stylesheet" href="../styles.css?v=20260401-video1" />
   </head>
   <body>
     <div class="shell">
@@ -234,12 +234,15 @@
               Der PNG-Export ist auf die nutzbare Breite einer Standard-A4-Seite in
               Word kalibriert, damit beim Einfuegen keine manuelle Groessenanpassung
               noetig ist.
+              Das Video versucht zuerst MP4 und faellt sonst auf WebM zurueck.
             </p>
           </article>
 
           <div class="footer-actions">
+            <button id="play-animation" type="button" class="ghost">Animation abspielen</button>
             <button id="export-svg" type="button">Als SVG exportieren</button>
             <button id="export-png" type="button">Als PNG fuer Word exportieren</button>
+            <button id="export-video" type="button">Video exportieren</button>
           </div>
         </section>
 
@@ -263,6 +266,6 @@
       </main>
     </div>
 
-    <script src="../app.js?v=20260401"></script>
+    <script src="../app.js?v=20260401-video1"></script>
   </body>
 </html>

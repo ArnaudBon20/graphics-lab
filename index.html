@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Graphics Lab</title>
-    <link rel="stylesheet" href="./styles.css?v=20260401" />
+    <link rel="stylesheet" href="./styles.css?v=20260401-video1" />
   </head>
   <body>
     <div class="shell">
@@ -223,12 +223,15 @@
             </div>
             <p class="export-note">
               L'export PNG est calibré pour la largeur utile d'une page Word A4 standard, afin d'éviter un redimensionnement manuel au collage.
+              La vidéo essaie le MP4 en priorité, puis bascule en WebM si le navigateur ne le permet pas.
             </p>
           </article>
 
           <div class="footer-actions">
+            <button id="play-animation" type="button" class="ghost">Lire l'animation</button>
             <button id="export-svg" type="button">Exporter en SVG</button>
             <button id="export-png" type="button">Exporter en PNG Word</button>
+            <button id="export-video" type="button">Exporter la vidéo</button>
           </div>
         </section>
 
@@ -252,6 +255,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=20260401"></script>
+    <script src="./app.js?v=20260401-video1"></script>
   </body>
 </html>

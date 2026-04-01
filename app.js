@@ -24,6 +24,10 @@ const PREVIEW_VIEWPORTS = {
   desktop: { maxWidth: 960 },
   wide: { maxWidth: 1320 },
 };
+const ANIMATION_DURATION_MS = 1800;
+const VIDEO_HOLD_DURATION_MS = 500;
+const VIDEO_FRAME_RATE = 30;
+const VIDEO_BIT_RATE = 6_000_000;
 const CRC32_TABLE = createCrc32Table();
 const UI_LANGUAGE = (document.documentElement.lang || "fr").toLowerCase().startsWith("de")
   ? "de"
@@ -51,6 +55,8 @@ const addSeriesButton = document.querySelector("#add-series");
 const projectStatus = document.querySelector("#project-status");
 const projectVersionMeta = document.querySelector("#project-version-meta");
 const projectHistory = document.querySelector("#project-history");
+const playAnimationButton = document.querySelector("#play-animation");
+const exportVideoButton = document.querySelector("#export-video");
 
 const fields = {
   projectName: document.querySelector("#project-name"),
@@ -71,6 +77,8 @@ let dataRows = [];
 let currentProjectId = null;
 let currentVersionId = null;
 let currentPreviewViewport = DEFAULT_PREVIEW_VIEWPORT;
+let isPreviewAnimating = false;
+let isVideoExporting = false;
 
 function buildUiText(language) {
   if (language === "de") {
@@ -136,6 +144,12 @@ function buildUiText(language) {
       previewViewportMobile: "Mobil",
       previewViewportDesktop: "Desktop",
       previewViewportWide: "Grosser Bildschirm",
+      animationPreviewFailed: "Die Animation konnte nicht abgespielt werden.",
+      videoExportFailed: "Das Video konnte im Moment nicht exportiert werden.",
+      videoExportUnsupported: "Der Videoexport ist in diesem Browser nicht verfuegbar.",
+      videoFallbackWebm: "MP4 wird in diesem Browser nicht unterstuetzt. Der Export erfolgt als WebM.",
+      animationRunning: "Animation laeuft...",
+      videoExportRunning: "Video wird exportiert...",
       sourceLabel: "Quelle",
       sourceUpper: "QUELLE",
       exportUnavailable: "Export nicht moeglich: Es ist kein SVG verfuegbar.",
@@ -210,6 +224,12 @@ function buildUiText(language) {
     previewViewportMobile: "Mobile",
     previewViewportDesktop: "Desktop",
     previewViewportWide: "Écran large",
+    animationPreviewFailed: "Impossible de lire l'animation pour le moment.",
+    videoExportFailed: "Impossible d'exporter la vidéo pour le moment.",
+    videoExportUnsupported: "L'export vidéo n'est pas disponible dans ce navigateur.",
+    videoFallbackWebm: "Le MP4 n'est pas pris en charge par ce navigateur. L'export se fera en WebM.",
+    animationRunning: "Animation en cours...",
+    videoExportRunning: "Export vidéo en cours...",
     sourceLabel: "Source",
     sourceUpper: "SOURCE",
     exportUnavailable: "Impossible d'exporter : aucun SVG n'est disponible.",
@@ -749,6 +769,28 @@ document.querySelector("#export-png").addEventListener("click", async () => {
   }
 });
 
+if (playAnimationButton) {
+  playAnimationButton.addEventListener("click", async () => {
+    try {
+      await playCurrentChartAnimation();
+    } catch (error) {
+      console.error(error);
+      window.alert(UI_TEXT.animationPreviewFailed);
+    }
+  });
+}
+
+if (exportVideoButton) {
+  exportVideoButton.addEventListener("click", async () => {
+    try {
+      await exportCurrentChartAsVideo();
+    } catch (error) {
+      console.error(error);
+      window.alert(UI_TEXT.videoExportFailed);
+    }
+  });
+}
+
 previewViewportButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const nextViewport = normalizePreviewViewport(button.dataset.previewViewport);
@@ -1239,6 +1281,19 @@ function buildPayload() {
   };
 }
 
+function getCurrentChartRenderContext() {
+  const state = getState();
+  const parsed = parseTableRows(dataRows, seriesConfig);
+  const checks = runChecks(state, parsed);
+
+  return {
+    state,
+    parsed,
+    checks,
+    series: cloneData(seriesConfig),
+  };
+}
+
 function render(options = {}) {
   const { syncAll = false, syncTable = false, syncColumns = false } = options;
   const state = getState();
@@ -1429,6 +1484,14 @@ function syncAuxiliaryUi() {
   fields.csvImport.placeholder = buildCsvPlaceholder(currentChartType);
   addSeriesButton.hidden = !config.allowSeriesEditing || seriesConfig.length >= config.maxSeries;
   seriesCountValue.textContent = String(seriesConfig.length);
+
+  if (playAnimationButton) {
+    playAnimationButton.disabled = isPreviewAnimating || isVideoExporting;
+  }
+
+  if (exportVideoButton) {
+    exportVideoButton.disabled = isPreviewAnimating || isVideoExporting;
+  }
 }
 
 function renderStats(rows) {
@@ -2433,6 +2496,227 @@ function renderLegend({ series, x, y, rowGap }) {
     .join("");
 }
 
+async function playCurrentChartAnimation() {
+  if (isPreviewAnimating || isVideoExporting) {
+    return;
+  }
+
+  const context = getCurrentChartRenderContext();
+
+  if (context.checks.errors.length > 0) {
+    window.alert(UI_TEXT.emptyStateFixBlocks);
+    return;
+  }
+
+  isPreviewAnimating = true;
+  qualityChip.classList.remove("blocked", "warning");
+  qualityChip.textContent = UI_TEXT.animationRunning;
+  syncAuxiliaryUi();
+
+  try {
+    await ensureExportFontsLoaded();
+    await animateChartFrames({
+      context,
+      durationMs: ANIMATION_DURATION_MS,
+      frameRate: VIDEO_FRAME_RATE,
+      onFrame: async (markup) => {
+        preview.innerHTML = markup;
+      },
+    });
+  } finally {
+    isPreviewAnimating = false;
+    render();
+  }
+}
+
+async function exportCurrentChartAsVideo() {
+  if (isVideoExporting || isPreviewAnimating) {
+    return;
+  }
+
+  const context = getCurrentChartRenderContext();
+
+  if (context.checks.errors.length > 0) {
+    window.alert(UI_TEXT.emptyStateFixBlocks);
+    return;
+  }
+
+  if (typeof MediaRecorder !== "function") {
+    window.alert(UI_TEXT.videoExportUnsupported);
+    return;
+  }
+
+  const recorderProfile = getVideoRecorderProfile();
+
+  if (!recorderProfile) {
+    window.alert(UI_TEXT.videoExportUnsupported);
+    return;
+  }
+
+  const exportData = getCurrentSvgExportData();
+
+  if (!exportData) {
+    window.alert(UI_TEXT.exportUnavailable);
+    return;
+  }
+
+  isVideoExporting = true;
+  qualityChip.classList.remove("blocked", "warning");
+  qualityChip.textContent = UI_TEXT.videoExportRunning;
+  syncAuxiliaryUi();
+
+  let stream = null;
+
+  try {
+    await ensureExportFontsLoaded();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(Math.round(exportData.width), 1);
+    canvas.height = Math.max(Math.round(exportData.height), 1);
+
+    const context2d = canvas.getContext("2d");
+
+    if (!context2d || typeof canvas.captureStream !== "function") {
+      window.alert(UI_TEXT.videoExportUnsupported);
+      return;
+    }
+
+    stream = canvas.captureStream(VIDEO_FRAME_RATE);
+    const chunks = [];
+    const recorder = new MediaRecorder(
+      stream,
+      recorderProfile.mimeType
+        ? { mimeType: recorderProfile.mimeType, videoBitsPerSecond: VIDEO_BIT_RATE }
+        : { videoBitsPerSecond: VIDEO_BIT_RATE },
+    );
+
+    const recorderStopped = new Promise((resolve, reject) => {
+      recorder.addEventListener("dataavailable", (event) => {
+        if (event.data && event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      });
+      recorder.addEventListener("stop", resolve, { once: true });
+      recorder.addEventListener("error", () => reject(recorder.error || new Error("Video export failed")), {
+        once: true,
+      });
+    });
+
+    recorder.start();
+
+    await animateChartFrames({
+      context,
+      durationMs: ANIMATION_DURATION_MS,
+      frameRate: VIDEO_FRAME_RATE,
+      onFrame: (markup) => drawSvgMarkupOnCanvas(markup, canvas, context2d),
+    });
+
+    await wait(VIDEO_HOLD_DURATION_MS);
+    recorder.stop();
+    await recorderStopped;
+
+    if (chunks.length === 0) {
+      throw new Error("No video data recorded");
+    }
+
+    const videoBlob = new Blob(chunks, {
+      type: recorderProfile.mimeType || recorder.mimeType || "video/webm",
+    });
+    downloadBlob(videoBlob, `${buildExportSlug()}.${recorderProfile.extension}`);
+
+    if (recorderProfile.extension !== "mp4") {
+      window.alert(UI_TEXT.videoFallbackWebm);
+    }
+  } finally {
+    stream?.getTracks().forEach((track) => track.stop());
+    isVideoExporting = false;
+    render();
+  }
+}
+
+async function animateChartFrames({ context, durationMs, frameRate, onFrame }) {
+  const totalFrames = Math.max(Math.round((durationMs / 1000) * frameRate), 18);
+  const frameDelay = 1000 / frameRate;
+
+  for (let frameIndex = 0; frameIndex <= totalFrames; frameIndex += 1) {
+    const progress = easeOutCubic(frameIndex / totalFrames);
+    const markup = buildAnimatedChartMarkup(context, progress);
+    await onFrame(markup, progress, frameIndex, totalFrames);
+
+    if (frameIndex < totalFrames) {
+      await wait(frameDelay);
+    }
+  }
+}
+
+function buildAnimatedChartMarkup(context, progress) {
+  return renderSvgChart({
+    title: context.state.title,
+    subtitle: context.state.subtitle,
+    source: context.state.source,
+    chartType: context.state.chartType,
+    rows: buildAnimatedRows(context.parsed.rows, progress),
+    series: context.series,
+  });
+}
+
+function buildAnimatedRows(rows, progress) {
+  return rows.map((row) => {
+    const values = Object.fromEntries(
+      Object.entries(row.values).map(([key, value]) => [key, normalizeAnimatedValue(value * progress)]),
+    );
+    const valueKeys = Object.keys(values);
+    const total = valueKeys.reduce((sum, key) => sum + values[key], 0);
+    const primaryKey = valueKeys[0];
+
+    return {
+      label: row.label,
+      values,
+      total,
+      value: primaryKey ? values[primaryKey] : normalizeAnimatedValue(row.value * progress),
+    };
+  });
+}
+
+function normalizeAnimatedValue(value) {
+  if (Math.abs(value) < 0.0001) {
+    return 0;
+  }
+
+  return Number.parseFloat(value.toFixed(3));
+}
+
+async function drawSvgMarkupOnCanvas(markup, canvas, context2d) {
+  const image = await loadImage(buildSvgDataUrl(markup));
+  context2d.fillStyle = "#ffffff";
+  context2d.fillRect(0, 0, canvas.width, canvas.height);
+  context2d.imageSmoothingEnabled = true;
+  context2d.imageSmoothingQuality = "high";
+  context2d.drawImage(image, 0, 0, canvas.width, canvas.height);
+}
+
+function getVideoRecorderProfile() {
+  const candidates = [
+    { mimeType: "video/mp4;codecs=h264", extension: "mp4" },
+    { mimeType: "video/mp4", extension: "mp4" },
+    { mimeType: "video/webm;codecs=vp9", extension: "webm" },
+    { mimeType: "video/webm;codecs=vp8", extension: "webm" },
+    { mimeType: "video/webm", extension: "webm" },
+  ];
+
+  if (typeof MediaRecorder.isTypeSupported !== "function") {
+    return { mimeType: "", extension: "webm" };
+  }
+
+  for (const candidate of candidates) {
+    if (MediaRecorder.isTypeSupported(candidate.mimeType)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 function exportCurrentChartAsSvg() {
   const exportData = getCurrentSvgExportData();
 
@@ -2882,6 +3166,16 @@ function pickSeriesColor(index) {
 
 function buildSeriesId(value, index) {
   return slugify(value || `serie-${index + 1}`) || `serie-${index + 1}`;
+}
+
+function easeOutCubic(value) {
+  return 1 - (1 - value) ** 3;
+}
+
+function wait(durationMs) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, durationMs);
+  });
 }
 
 function formatDisplayNumber(value) {
