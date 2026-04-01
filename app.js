@@ -57,7 +57,6 @@ const projectVersionMeta = document.querySelector("#project-version-meta");
 const projectHistory = document.querySelector("#project-history");
 const playAnimationButton = document.querySelector("#play-animation");
 const exportVideoButton = document.querySelector("#export-video");
-const importCsvButton = document.querySelector("#import-csv");
 const csvFileNameLabel = document.querySelector("#csv-file-name");
 
 const fields = {
@@ -90,7 +89,6 @@ function buildUiText(language) {
       clipboardDenied: "Der Browser hat den Zugriff auf die Zwischenablage verweigert.",
       pngExportFailed: "PNG kann im Moment nicht exportiert werden.",
       noCsvData: "Im CSV wurden keine verwertbaren Daten gefunden.",
-      noCsvFile: "Bitte waehle zuerst eine CSV-Datei aus.",
       csvReadFailed: "Die CSV-Datei konnte nicht gelesen werden.",
       importInvalidRows: ({ count }) =>
         `${count} Zeile(n) konnten nicht importiert werden, weil sie unvollstaendig oder ungueltig sind.`,
@@ -172,7 +170,6 @@ function buildUiText(language) {
     clipboardDenied: "Le navigateur a refusé l'accès au presse-papiers.",
     pngExportFailed: "Impossible d'exporter le PNG pour le moment.",
     noCsvData: "Aucune donnée exploitable n'a été trouvée dans le CSV.",
-    noCsvFile: "Choisis d'abord un fichier CSV.",
     csvReadFailed: "Impossible de lire le fichier CSV.",
     importInvalidRows: ({ count }) =>
       `${count} ligne(s) n'ont pas pu être importée(s) parce qu'elles étaient incomplètes ou invalides.`,
@@ -722,6 +719,39 @@ function getSelectedCsvFile() {
   return fields.csvFile?.files?.[0] || null;
 }
 
+async function importCsvFromSelectedFile() {
+  const csvFile = getSelectedCsvFile();
+
+  if (!csvFile) {
+    return;
+  }
+
+  let csvContent = "";
+
+  try {
+    csvContent = await readTextFile(csvFile);
+  } catch (error) {
+    window.alert(UI_TEXT.csvReadFailed);
+    return;
+  }
+
+  setCsvImportValue(csvContent);
+  const imported = parseCsv(csvContent, currentChartType, seriesConfig);
+
+  if (imported.rows.length === 0 && imported.invalidRows === 0) {
+    window.alert(UI_TEXT.noCsvData);
+    return;
+  }
+
+  seriesConfig = imported.series;
+  dataRows = padRows(imported.rows, seriesConfig);
+  render({ syncAll: true });
+
+  if (imported.invalidRows > 0) {
+    window.alert(UI_TEXT.importInvalidRows({ count: imported.invalidRows }));
+  }
+}
+
 document.querySelector("#load-sample").addEventListener("click", () => {
   const sampleType = getSelectedChartType();
   applySession({
@@ -862,8 +892,9 @@ fields.projectName.addEventListener("input", () => {
 });
 
 if (fields.csvFile) {
-  fields.csvFile.addEventListener("change", () => {
+  fields.csvFile.addEventListener("change", async () => {
     render();
+    await importCsvFromSelectedFile();
   });
 }
 
@@ -896,42 +927,6 @@ document.querySelector("#clear-rows").addEventListener("click", () => {
   dataRows = Array.from({ length: MIN_ROWS }, () => createEmptyRow(seriesConfig));
   render({ syncTable: true, syncColumns: true });
 });
-
-if (importCsvButton) {
-  importCsvButton.addEventListener("click", async () => {
-    const csvFile = getSelectedCsvFile();
-
-    if (!csvFile) {
-      window.alert(UI_TEXT.noCsvFile);
-      return;
-    }
-
-    let csvContent = "";
-
-    try {
-      csvContent = await readTextFile(csvFile);
-    } catch (error) {
-      window.alert(UI_TEXT.csvReadFailed);
-      return;
-    }
-
-    setCsvImportValue(csvContent);
-    const imported = parseCsv(csvContent, currentChartType, seriesConfig);
-
-    if (imported.rows.length === 0 && imported.invalidRows === 0) {
-      window.alert(UI_TEXT.noCsvData);
-      return;
-    }
-
-    seriesConfig = imported.series;
-    dataRows = padRows(imported.rows, seriesConfig);
-    render({ syncAll: true });
-
-    if (imported.invalidRows > 0) {
-      window.alert(UI_TEXT.importInvalidRows({ count: imported.invalidRows }));
-    }
-  });
-}
 
 dataRowsBody.addEventListener("input", (event) => {
   const target = event.target;
@@ -1537,10 +1532,6 @@ function syncAuxiliaryUi() {
     csvFileNameLabel.textContent = csvFile
       ? UI_TEXT.csvFileLoaded({ name: csvFile.name })
       : UI_TEXT.csvFileEmpty;
-  }
-
-  if (importCsvButton) {
-    importCsvButton.disabled = !csvFile || isPreviewAnimating || isVideoExporting;
   }
 
   if (playAnimationButton) {
