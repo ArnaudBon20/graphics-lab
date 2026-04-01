@@ -57,6 +57,8 @@ const projectVersionMeta = document.querySelector("#project-version-meta");
 const projectHistory = document.querySelector("#project-history");
 const playAnimationButton = document.querySelector("#play-animation");
 const exportVideoButton = document.querySelector("#export-video");
+const importCsvButton = document.querySelector("#import-csv");
+const csvFileNameLabel = document.querySelector("#csv-file-name");
 
 const fields = {
   projectName: document.querySelector("#project-name"),
@@ -68,7 +70,7 @@ const fields = {
   owner: document.querySelector("#owner"),
   methodology: document.querySelector("#methodology"),
   altText: document.querySelector("#alt-text"),
-  csvImport: document.querySelector("#csv-import"),
+  csvFile: document.querySelector("#csv-file"),
 };
 
 let currentChartType = DEFAULT_CHART_TYPE;
@@ -79,6 +81,7 @@ let currentVersionId = null;
 let currentPreviewViewport = DEFAULT_PREVIEW_VIEWPORT;
 let isPreviewAnimating = false;
 let isVideoExporting = false;
+let csvImportBuffer = "";
 
 function buildUiText(language) {
   if (language === "de") {
@@ -87,6 +90,8 @@ function buildUiText(language) {
       clipboardDenied: "Der Browser hat den Zugriff auf die Zwischenablage verweigert.",
       pngExportFailed: "PNG kann im Moment nicht exportiert werden.",
       noCsvData: "Im CSV wurden keine verwertbaren Daten gefunden.",
+      noCsvFile: "Bitte waehle zuerst eine CSV-Datei aus.",
+      csvReadFailed: "Die CSV-Datei konnte nicht gelesen werden.",
       importInvalidRows: ({ count }) =>
         `${count} Zeile(n) konnten nicht importiert werden, weil sie unvollstaendig oder ungueltig sind.`,
       unsavedProject: "Projekt nicht gespeichert",
@@ -144,6 +149,8 @@ function buildUiText(language) {
       previewViewportMobile: "Mobil",
       previewViewportDesktop: "Desktop",
       previewViewportWide: "Grosser Bildschirm",
+      csvFileEmpty: "Keine Datei ausgewaehlt.",
+      csvFileLoaded: ({ name }) => `Datei: ${name}`,
       animationPreviewFailed: "Die Animation konnte nicht abgespielt werden.",
       videoExportFailed: "Das Video konnte im Moment nicht exportiert werden.",
       videoExportUnsupported: "Der Videoexport ist in diesem Browser nicht verfuegbar.",
@@ -165,6 +172,8 @@ function buildUiText(language) {
     clipboardDenied: "Le navigateur a refusé l'accès au presse-papiers.",
     pngExportFailed: "Impossible d'exporter le PNG pour le moment.",
     noCsvData: "Aucune donnée exploitable n'a été trouvée dans le CSV.",
+    noCsvFile: "Choisis d'abord un fichier CSV.",
+    csvReadFailed: "Impossible de lire le fichier CSV.",
     importInvalidRows: ({ count }) =>
       `${count} ligne(s) n'ont pas pu être importée(s) parce qu'elles étaient incomplètes ou invalides.`,
     unsavedProject: "Projet non sauvegardé",
@@ -224,6 +233,8 @@ function buildUiText(language) {
     previewViewportMobile: "Mobile",
     previewViewportDesktop: "Desktop",
     previewViewportWide: "Écran large",
+    csvFileEmpty: "Aucun fichier sélectionné.",
+    csvFileLoaded: ({ name }) => `Fichier : ${name}`,
     animationPreviewFailed: "Impossible de lire l'animation pour le moment.",
     videoExportFailed: "Impossible d'exporter la vidéo pour le moment.",
     videoExportUnsupported: "L'export vidéo n'est pas disponible dans ce navigateur.",
@@ -699,6 +710,18 @@ function getPreviewViewportLabel() {
   return UI_TEXT.previewViewportDesktop;
 }
 
+function getCsvImportValue() {
+  return csvImportBuffer;
+}
+
+function setCsvImportValue(value) {
+  csvImportBuffer = String(value ?? "");
+}
+
+function getSelectedCsvFile() {
+  return fields.csvFile?.files?.[0] || null;
+}
+
 document.querySelector("#load-sample").addEventListener("click", () => {
   const sampleType = getSelectedChartType();
   applySession({
@@ -838,6 +861,12 @@ fields.projectName.addEventListener("input", () => {
   render();
 });
 
+if (fields.csvFile) {
+  fields.csvFile.addEventListener("change", () => {
+    render();
+  });
+}
+
 addSeriesButton.addEventListener("click", () => {
   const config = getChartConfig(currentChartType);
 
@@ -868,22 +897,41 @@ document.querySelector("#clear-rows").addEventListener("click", () => {
   render({ syncTable: true, syncColumns: true });
 });
 
-document.querySelector("#import-csv").addEventListener("click", () => {
-  const imported = parseCsv(fields.csvImport.value, currentChartType, seriesConfig);
+if (importCsvButton) {
+  importCsvButton.addEventListener("click", async () => {
+    const csvFile = getSelectedCsvFile();
 
-  if (imported.rows.length === 0 && imported.invalidRows === 0) {
-    window.alert(UI_TEXT.noCsvData);
-    return;
-  }
+    if (!csvFile) {
+      window.alert(UI_TEXT.noCsvFile);
+      return;
+    }
 
-  seriesConfig = imported.series;
-  dataRows = padRows(imported.rows, seriesConfig);
-  render({ syncAll: true });
+    let csvContent = "";
 
-  if (imported.invalidRows > 0) {
-    window.alert(UI_TEXT.importInvalidRows({ count: imported.invalidRows }));
-  }
-});
+    try {
+      csvContent = await readTextFile(csvFile);
+    } catch (error) {
+      window.alert(UI_TEXT.csvReadFailed);
+      return;
+    }
+
+    setCsvImportValue(csvContent);
+    const imported = parseCsv(csvContent, currentChartType, seriesConfig);
+
+    if (imported.rows.length === 0 && imported.invalidRows === 0) {
+      window.alert(UI_TEXT.noCsvData);
+      return;
+    }
+
+    seriesConfig = imported.series;
+    dataRows = padRows(imported.rows, seriesConfig);
+    render({ syncAll: true });
+
+    if (imported.invalidRows > 0) {
+      window.alert(UI_TEXT.importInvalidRows({ count: imported.invalidRows }));
+    }
+  });
+}
 
 dataRowsBody.addEventListener("input", (event) => {
   const target = event.target;
@@ -961,7 +1009,7 @@ seriesEditor.addEventListener("click", (event) => {
 
 form.addEventListener("input", (event) => {
   if (
-    event.target === fields.csvImport ||
+    event.target === fields.csvFile ||
     event.target === fields.chartType ||
     event.target.closest("#data-rows") ||
     event.target.closest("#series-editor")
@@ -974,7 +1022,7 @@ form.addEventListener("input", (event) => {
 
 form.addEventListener("change", (event) => {
   if (
-    event.target === fields.csvImport ||
+    event.target === fields.csvFile ||
     event.target === fields.chartType ||
     event.target.closest("#data-rows") ||
     event.target.closest("#series-editor")
@@ -1073,7 +1121,7 @@ function applySession(session) {
   fields.owner.value = normalized.owner;
   fields.methodology.value = normalized.methodology;
   fields.altText.value = normalized.altText;
-  fields.csvImport.value = normalized.csvImport;
+  setCsvImportValue(normalized.csvImport);
 }
 
 function normalizeState(state) {
@@ -1157,7 +1205,7 @@ function getState() {
     owner: fields.owner.value.trim(),
     methodology: fields.methodology.value.trim(),
     altText: fields.altText.value.trim(),
-    csvImport: fields.csvImport.value,
+    csvImport: getCsvImportValue(),
     series: cloneData(seriesConfig),
     rows: cloneData(dataRows),
   };
@@ -1186,7 +1234,7 @@ function handleChartTypeChange(nextType) {
   dataRows = migrateRows(nextType, dataRows, seriesConfig, nextSeries);
   seriesConfig = nextSeries;
   currentChartType = nextType;
-  fields.csvImport.value = buildCsvPlaceholder(nextType);
+  setCsvImportValue(buildCsvPlaceholder(nextType));
   render({ syncAll: true });
 }
 
@@ -1481,9 +1529,19 @@ function renderDataTable() {
 
 function syncAuxiliaryUi() {
   const config = getChartConfig(currentChartType);
-  fields.csvImport.placeholder = buildCsvPlaceholder(currentChartType);
   addSeriesButton.hidden = !config.allowSeriesEditing || seriesConfig.length >= config.maxSeries;
   seriesCountValue.textContent = String(seriesConfig.length);
+  const csvFile = getSelectedCsvFile();
+
+  if (csvFileNameLabel) {
+    csvFileNameLabel.textContent = csvFile
+      ? UI_TEXT.csvFileLoaded({ name: csvFile.name })
+      : UI_TEXT.csvFileEmpty;
+  }
+
+  if (importCsvButton) {
+    importCsvButton.disabled = !csvFile || isPreviewAnimating || isVideoExporting;
+  }
 
   if (playAnimationButton) {
     playAnimationButton.disabled = isPreviewAnimating || isVideoExporting;
@@ -2864,6 +2922,15 @@ function loadImage(url) {
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error("Image loading failed"));
     image.src = url;
+  });
+}
+
+function readTextFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("File reading failed"));
+    reader.readAsText(file, "utf-8");
   });
 }
 

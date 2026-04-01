@@ -161,20 +161,16 @@
               <div class="import-card">
                 <div>
                   <p class="section-kicker">Import rapide</p>
-                  <h4>Coller un CSV</h4>
+                  <h4>Importer un fichier CSV</h4>
                   <p class="data-note">
-                    Le CSV suit les colonnes du tableau. L'import remplit la table
-                    directement.
+                    Le fichier CSV suit les colonnes du tableau. L'import remplit la
+                    table directement.
                   </p>
                 </div>
-                <textarea
-                  id="csv-import"
-                  name="csvImport"
-                  rows="5"
-                  placeholder="label,value"
-                ></textarea>
+                <input id="csv-file" name="csvFile" type="file" accept=".csv,text/csv" />
+                <p id="csv-file-name" class="data-note">Aucun fichier sélectionné.</p>
                 <div class="toolbar">
-                  <button id="import-csv" type="button">Importer le CSV</button>
+                  <button id="import-csv" type="button">Importer le fichier CSV</button>
                 </div>
               </div>
             </section>
@@ -255,6 +251,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=20260401-video1"></script>
+    <script src="./app.js?v=20260401-video2"></script>
   </body>
 </html>

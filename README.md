@@ -6,7 +6,7 @@ Prototype front-only pour tester une logique de creation, verification et export
 
 - edition locale d'un graphique simple
 - saisie directe des donnees dans un tableau
-- import CSV pour remplir rapidement le tableau
+- import de fichier CSV pour remplir rapidement le tableau
 - configuration de series multiples
 - templates proches du rapport annuel pour colonnes empilees et colonnes positives / negatives
 - graphiques en barres horizontales, verticales et courbe

@@ -170,20 +170,16 @@
               <div class="import-card">
                 <div>
                   <p class="section-kicker">Schnellimport</p>
-                  <h4>CSV einfuegen</h4>
+                  <h4>CSV-Datei importieren</h4>
                   <p class="data-note">
-                    Das CSV folgt den Spalten der Tabelle. Der Import fuellt die Tabelle
-                    direkt.
+                    Die CSV-Datei folgt den Spalten der Tabelle. Der Import fuellt die
+                    Tabelle direkt.
                   </p>
                 </div>
-                <textarea
-                  id="csv-import"
-                  name="csvImport"
-                  rows="5"
-                  placeholder="label,value"
-                ></textarea>
+                <input id="csv-file" name="csvFile" type="file" accept=".csv,text/csv" />
+                <p id="csv-file-name" class="data-note">Keine Datei ausgewaehlt.</p>
                 <div class="toolbar">
-                  <button id="import-csv" type="button">CSV importieren</button>
+                  <button id="import-csv" type="button">CSV-Datei importieren</button>
                 </div>
               </div>
             </section>
@@ -266,6 +262,6 @@
       </main>
     </div>
 
-    <script src="../app.js?v=20260401-video1"></script>
+    <script src="../app.js?v=20260401-video2"></script>
   </body>
 </html>
