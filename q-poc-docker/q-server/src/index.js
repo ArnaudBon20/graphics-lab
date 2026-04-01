@@ -98,6 +98,14 @@ const baseTranslations = {
       "Les changements non enregistres seront perdus.",
     failedToSave: "Enregistrement impossible.",
     conflictOnSave: "Conflit de sauvegarde."
+  },
+  preview: {
+    title: "Modifier ton graphique",
+    small: "Petit",
+    medium: "Moyen",
+    large: "Grand",
+    sizeLabel: "Taille",
+    error: "Le graphique ne peut pas etre affiche"
   }
 };
 
@@ -800,7 +808,7 @@ app.get("/statistics/number-of-items/:fromTs?", requireAuth, async (req, res, ne
   }
 });
 
-app.get("/display-options-schema/:id/:target.json", requireAuth, (req, res) => {
+app.get("/display-options-schema/:id/:target.json", (req, res) => {
   if (req.params.target === "export-png") {
     res.json({
       title: "PNG options",
@@ -830,7 +838,7 @@ app.get("/display-options-schema/:id/:target.json", requireAuth, (req, res) => {
   });
 });
 
-app.get("/rendering-info/:id/:target", requireAuth, async (req, res, next) => {
+app.get("/rendering-info/:id/:target", async (req, res, next) => {
   try {
     const item = await db.get(req.params.id);
     const toolRuntimeConfigRaw = req.query.toolRuntimeConfig;
@@ -865,7 +873,7 @@ app.get("/rendering-info/:id/:target", requireAuth, async (req, res, next) => {
   }
 });
 
-app.post("/rendering-info/:target", requireAuth, async (req, res, next) => {
+app.post("/rendering-info/:target", async (req, res, next) => {
   try {
     const item = req.body?.item || {};
     if (!item.tool) {
